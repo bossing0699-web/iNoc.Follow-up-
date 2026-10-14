@@ -77,16 +77,14 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
 
 <div class="card">
   <div class="row">
-    <div style="flex:1"><label>กรองจากคำใน Subject</label>
+    <div style="flex:1"><label>Escalate type</label>
       <select id="kw"><option value="all">ทั้งหมด</option><option value="power">ระบบไฟ</option><option value="ofc">OFC</option></select></div>
     <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
     <div><label>Severity</label>
       <select id="sev"><option value="all">ทั้งหมด</option><option>NSA1</option><option>NSA2</option><option>NSA3</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
-    <div><label>Status</label><select id="stat"><option value="">ทั้งหมด</option></select></div>
   </div>
-  <div class="mu" style="margin-top:6px">ระบบไฟ = Generator, Main, urgent · OFC = OFC (ไม่สนตัวพิมพ์เล็ก-ใหญ่)</div>
 </div>
 
 <div class="card">
@@ -213,16 +211,12 @@ function parseCSV(t,d=","){
 }
 
 function ingest(text,d,src="Google Sheet"){
-  const keepStat=$("stat").value;
   const t=(Array.isArray(text)?text:parseCSV(text,d)).filter(r=>r.some(x=>String(x).trim()));
   const h=t[0].map(x=>String(x).trim().toUpperCase());
   const ix=n=>h.indexOf(n);
   const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY");
   if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
   rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():""})).filter(x=>x.id);
-  const st=[...new Set(rows.map(x=>x.stat).filter(Boolean))].sort();
-  $("stat").innerHTML='<option value="">ทั้งหมด</option>'+st.map(s=>`<option>${s}</option>`).join("");
-  if(st.includes(keepStat))$("stat").value=keepStat;
   setUpd(src);
   render();
 }
@@ -242,8 +236,8 @@ function buildRegex(){
 const ORDER=["BMA","CW","East","South","อื่นๆ"];
 
 function filtered(){
-  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),st=$("stat").value,rg=$("rg").value,ol=$("onlylist").checked;
-  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||re.test(x.subj))&&(!sf||x.site.toLowerCase().includes(sf))&&(!st||x.stat===st)&&(!rg||grp(x)===rg));
+  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=$("onlylist").checked;
+  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||re.test(x.subj))&&(!sf||x.site.toLowerCase().includes(sf))&&(!rg||grp(x)===rg));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
@@ -254,15 +248,17 @@ const lines=l=>{
   l.forEach(x=>{if(!g.has(x.site))g.set(x.site,[]);g.get(x.site).push(x.id)});
   return [...g].map(([site,ids])=>site+"\n"+ids.join("\n")).join("\n");
 };
-function text(items){
-  if(kwMode==="power")return HP+"\n"+lines(items);
-  if(kwMode==="ofc")return HO+"\n"+lines(items);
+const linesR=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.length?rg+"\n"+lines(it):""}).filter(Boolean).join("\n\n");
+function text(items,wr){
+  const B=wr?linesR:lines;
+  if(kwMode==="power")return HP+"\n\n"+B(items);
+  if(kwMode==="ofc")return HO+"\n\n"+B(items);
   if(kwMode==="both"){
     const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
     const p=items.filter(x=>rP.test(x.subj)),o=items.filter(x=>rO.test(x.subj));
-    return [p.length?HP+"\n"+lines(p):"",o.length?HO+"\n"+lines(o):""].filter(Boolean).join("\n\n");
+    return [p.length?HP+"\n\n"+B(p):"",o.length?HO+"\n\n"+B(o):""].filter(Boolean).join("\n\n");
   }
-  return "ติดตาม Update\n"+lines(items);
+  return "ติดตาม Update\n\n"+B(items);
 }
 
 function render(){
@@ -295,7 +291,7 @@ async function copy(txt,btn){
   setTimeout(()=>{btn.textContent=o;btn.classList.remove("done")},1200);
 }
 
-$("copyall").onclick=e=>copy(text(filtered()),e.target);
+$("copyall").onclick=e=>copy(text(filtered(),true),e.target);
 
 function viaScript(id,gid){
   return new Promise((res,rej)=>{
@@ -355,7 +351,7 @@ $("file").onchange=e=>{
 $("sitef").oninput=render;
 $("sev").onchange=e=>{const v=e.target.value;sevSet=v==="all"?new Set(["NSA1","NSA2","NSA3"]):new Set([v]);render()};
 $("kw").onchange=e=>{kwMode=e.target.value;render()};
-$("stat").onchange=render;$("rg").onchange=render;$("onlylist").onchange=render;
+$("rg").onchange=render;$("onlylist").onchange=render;
 $("refresh").onclick=()=>$("load").click();
 $("sync").onclick=()=>$("load").click();
 setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
