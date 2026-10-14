@@ -52,10 +52,33 @@ button.done,button.sec.done{background:var(--ok);border-color:var(--ok);color:#f
 .t code{white-space:nowrap;color:var(--ac);font:500 12.5px "JetBrains Mono",monospace}
 .t span{color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mu{color:var(--mu);font-size:12px}
+.who{font:500 12px "JetBrains Mono",monospace;font-style:normal;color:var(--ac);background:rgba(0,82,255,.07);border-radius:6px;padding:1px 8px;white-space:nowrap}
 .bar{align-items:center}
 #count{color:var(--tx);font-size:18px;font-weight:600;letter-spacing:-.01em}
 #msg{margin-top:8px}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.cl{font:500 11px "JetBrains Mono",monospace;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px}
+button.chip{min-height:36px;padding:0 6px 0 14px;border-radius:999px;background:#fff;color:var(--tx);border:1px solid var(--bd);box-shadow:none;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+button.chip:hover{transform:none;filter:none;background:var(--muted);border-color:rgba(0,82,255,.3);box-shadow:none}
+button.chip span{min-width:24px;padding:1px 8px;border-radius:999px;background:var(--muted);color:var(--mu);font:500 11px "JetBrains Mono",monospace;text-align:center}
+button.chip.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:var(--sh-ac)}
+button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
+.t{flex-wrap:wrap;align-items:center}
+.t .sj{flex:1 1 260px;color:var(--mu);white-space:normal;overflow:visible}
+.t .sv{font:600 11px "JetBrains Mono",monospace;padding:1px 8px;border-radius:6px;background:var(--muted);color:var(--tx)}
+.t .ss{font:600 12.5px "JetBrains Mono",monospace;color:var(--tx)}
+.st{font:600 11.5px "JetBrains Mono",monospace;font-style:normal;border-radius:6px;padding:1px 8px;white-space:nowrap}
+.st.ok{color:#15803d;background:rgba(22,163,74,.1)}
+.st.over{color:#b91c1c;background:rgba(239,68,68,.1)}
+.reg{--rc:#0052FF;--rcb:0,82,255}
+.sh.rh{border-radius:10px;margin:14px 0 8px;border:1px solid rgba(var(--rcb),.25);border-left:6px solid var(--rc);background:rgba(var(--rcb),.10)}
+.sh.rh b{color:var(--rc);font-size:16px}
+.sh.rh button{background:var(--rc);box-shadow:0 4px 14px rgba(var(--rcb),.3)}
+.reg .site{border-left:4px solid var(--rc)}
+.reg .site .sh{background:linear-gradient(135deg,rgba(var(--rcb),.07),transparent)}
+.reg .t code{color:var(--rc)}
+.reg .who{color:var(--rc);background:rgba(var(--rcb),.08)}
 @keyframes pl{50%{transform:scale(1.3);opacity:.7}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:600px){.t{flex-wrap:wrap;gap:4px}.t span{white-space:normal}}
@@ -93,8 +116,9 @@ button.done,button.sec.done{background:var(--ok);border-color:var(--ok);color:#f
       <select id="kw"><option value="all">ทั้งหมด</option><option value="power">ระบบไฟ</option><option value="ofc">OFC</option></select></div>
     <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
     <div><label>Severity</label>
-      <select id="sev"><option value="all">ทั้งหมด</option><option>NSA1</option><option>NSA2</option><option>NSA3</option></select></div>
+      <select id="sev"><option value="all">ทั้งหมด (NSA + SA)</option><option value="NSA">NSA</option><option value="SA">SA</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
+    <div><label>Province</label><select id="pv"><option value="">ทั้งหมด</option></select></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
   </div>
 </div>
@@ -138,26 +162,11 @@ function setUpd(src,st){
   setSync("ok",st.changed?"ข้อมูลมีการอัปเดต ✓":"Sync แล้ว ✓",`ข้อมูลอัปเดตล่าสุด <b>${fmtT}</b> · ${fmtD}${st.first?" (ตรวจพบครั้งแรก)":""} · ตรวจสอบล่าสุด ${t} · จาก ${src}`);
 }
 const SG={
-"BMA":`BKK0051 BKK0099 BKK0143 BKK0145 BKK0146 BKK0156 BKK0203 NTB01001 NTB01003 NTB01004 NTB01005 NTB01006
-NTB02001 NTB03001 NTB03002 NTB04001 NTB04002 NTB04003 NTB04004 NTB04006 NTB05001 NTB05002 NTB06001 NTB06002
-NTB06003 PTT01001 PTT01002 PTT02001 PTT02002 PTT02003 PTT03001 PTT03002 PTT03003 PTT03005 PTT04001 PTT05001
-PTT05002 PTT06001 PTT06002 PTT06003 BKK19002 BKK19001 BKK25002 BKK25001 BKK22001 BKK22002 BKK20001 BKK35001
-BKK15002 BKK21003 BKK21001 BKK21002 BKK35002 BKK50001 BKK18004 BKK18001 BKK23001 BKK40001 BKK23002 BKK48001
-BKK24002 BKK49002 BKK40002 BKK40003 BKK49001 BKK24001 BKK15001 BKK0025 BKK0026 BKK0030 BKK0045 BKK0053
-BKK0054 BKK0056 BKK0069 BKK0089 BKK0090 BKK0135 BKK0153 BKK0180 BKK46002 BKK46001 BKK10001 BKK46003
-BKK30001 BKK29001 BKK29002 BKK32002 BKK47002 BKK47001 BKK32003 BKK41001 BKK42001 BKK42002 BKK062A4 BKK27001
-BKK06001 BKK44001 BKK11002 BKK11001 BKK41002 BKK05001 BKK05003 BKK10002 BKK03001 BKK03002 BKKC1017 BKK32001
-BKK11003 BKK27002 BKK43001 BKK05002 BKK06003 BKK36001 BKK36002 BKK06002 BKK0008 BKK0041 BKK0171 BKK0274
-BKK0031 BKK0035 BKK0038 BKK0050 BKK0077 BKK0080 BKK0096 BKK0100 BKK0101 BKK0102 BKK0104 BKK0113
-BKK0115 BKK0177 BKK0226 BKK0228 BKK0234 BKK0385 BKK059N BKK060N SMP06002 SMP02001 SMP06003 SMP02002
-SMP01001 SMP03001 SMP03002 SMP04002 BKK49003 SMP04001 SMP01004 SMP01005 SMP01002 SMP01007 SMP01003 BKK0047
-BKK0052 BKK0081 BKK0148 BKK0149 BKK0150 BKK0163 BKK0294 BKK09001 BKK39001 BKK17001 BKK38001 BKK45002
-BKK45001 BKK09002 BKK37001 PNCCBK51 SPARAGON BKK33002 BKK37002 BKK14001 BKK33001 BKK02001 BKK08001 BKK04001
-BKK12001 BKK28001 BKK28002 BKK31001 BKK0002 BKK0004 BKK0005 BKK0006 BKK0010 BKK0016 BKK001N BKK0021
-BKK0024 BKK0028 BKK0032 BKK0043 BKK007N BKK0111 BKK0114 BKK0116 BKK0119 BKK0125 BKK0159 BKK0160
-BKK0194 BKK0259 BKK0275 BKK0280 BKK029N BKK0302 BKK062N BKK2047 BKK3055 BKK5976 TOC-PSI BKK30AGN
-BKK27AGN BKK10AGN AGN-HAM04 SMP01AGN SMP06AGN BKK22AGN BKK40AGN BKK49AGN PTT06AGN PTT03AGN NTB03AGN PTT07AGN
-NTB06AGN BKK28AGN BKK26AGN`,
+"BMAW1":`BKK0051 BKK0099 BKK0143 BKK0145 BKK0146 BKK0156 BKK0203 NTB01001 NTB01003 NTB01004 NTB01005 NTB01006 NTB02001 NTB03001 NTB03002 NTB04001 NTB04002 NTB04003 NTB04004 NTB04006 NTB05001 NTB05002 NTB06001 NTB06002 NTB06003 PTT01001 PTT01002 PTT02001 PTT02002 PTT02003 PTT03001 PTT03002 PTT03003 PTT03005 PTT04001 PTT05001 PTT05002 PTT06001 PTT06002 PTT06003 PTT06AGN PTT03AGN NTB03AGN PTT07AGN NTB06AGN`,
+"BMAW2":`BKK19002 BKK19001 BKK25002 BKK25001 BKK22001 BKK22002 BKK20001 BKK35001 BKK15002 BKK21003 BKK21001 BKK21002 BKK35002 BKK50001 BKK18004 BKK18001 BKK23001 BKK40001 BKK23002 BKK48001 BKK24002 BKK49002 BKK40002 BKK40003 BKK49001 BKK24001 BKK15001 BKK0025 BKK0026 BKK0030 BKK0045 BKK0053 BKK0054 BKK0056 BKK0069 BKK0089 BKK0090 BKK0135 BKK0153 BKK0180 TOC-PSI BKK22AGN BKK40AGN BKK49AGN`,
+"BMAE1":`BKK46002 BKK46001 BKK10001 BKK46003 BKK30001 BKK29001 BKK29002 BKK32002 BKK47002 BKK47001 BKK32003 BKK41001 BKK42001 BKK42002 BKK062A4 BKK27001 BKK06001 BKK44001 BKK11002 BKK11001 BKK41002 BKK05001 BKK05003 BKK10002 BKK03001 BKK03002 BKKC1017 BKK32001 BKK11003 BKK27002 BKK43001 BKK05002 BKK06003 BKK36001 BKK36002 BKK06002 BKK0008 BKK0041 BKK0171 BKK0274 BKK0031 BKK0035 BKK0038 BKK0050 BKK0077 BKK0080 BKK0096 BKK0100 BKK0101 BKK0102 BKK0104 BKK0113 BKK0115 BKK0177 BKK0226 BKK0228 BKK0234 BKK0385 BKK059N BKK30AGN BKK27AGN BKK10AGN AGN-HAM04`,
+"BMAE2":`BKK060N BKK09001 BKK39001 BKK17001 BKK38001 BKK45002 BKK45001 BKK09002 BKK37001 PNCCBK51 SPARAGON BKK33002 BKK37002 BKK14001 BKK33001 BKK02001 BKK08001 BKK04001 BKK12001 BKK28001 BKK28002 BKK31001 BKK0002 BKK0004 BKK0005 BKK0006 BKK0010 BKK0016 BKK001N BKK0021 BKK0024 BKK0028 BKK0032 BKK0043 BKK007N BKK0111 BKK0114 BKK0116 BKK0119 BKK0125 BKK0159 BKK0160 BKK0194 BKK0259 BKK0275 BKK0280 BKK029N BKK0302 BKK062N BKK2047 BKK3055 BKK5976 BKK28AGN BKK26AGN`,
+"BMAE3":`SMP06002 SMP02001 SMP06003 SMP02002 SMP01001 SMP03001 SMP03002 SMP04002 BKK49003 SMP04001 SMP01004 SMP01005 SMP01002 SMP01007 SMP01003 BKK0047 BKK0052 BKK0081 BKK0148 BKK0149 BKK0150 BKK0163 BKK0294 SMP01AGN SMP06AGN`,
 "East":`TRT2006 TRT6021 TRT3204 TRT6004 CCS6501 CCS2227 CCS1860 TRT3001 CCS6001 CCS6010 CTB1650 CTB6022
 CCS1632 CTB2211 CTB8554 CCS3341 CTB0605 CCS0013 CCS3013 CTB6001 CCS3151 CTB2164 RYG2341 RYG2332
 CCS0006 RYG6503 RYG0032 RYG3500 RYG4002 RYG2113 CBR0561 RYG8556 CBR4011 RYG2002 RYG1644 CBR1641
@@ -213,11 +222,46 @@ TOC-SRT TOC-SKA`
 };
 const SMAP={};
 for(const k in SG)SG[k].split(/\s+/).forEach(x=>{if(x){SMAP[x]=k;SMAP[x.split("(")[0]]=SMAP[x.split("(")[0]]||k}});
-const siteKey=x=>{const n=x.site.toUpperCase().trim();return SMAP[n]?n:(SMAP[n.split("(")[0]]?n.split("(")[0]:null)};
-const inList=x=>siteKey(x)!==null;
-const grp=x=>{const k=siteKey(x);if(!k)return "อื่นๆ";const g=SMAP[k];return (g==="Central"||g==="West")?"CW":g};
+const siteKey=x=>{const n=(x.sid||x.site).toUpperCase().trim();return SMAP[n]?n:(SMAP[n.split("(")[0]]?n.split("(")[0]:null)};
+/* Site table from Google Sheet tab "Site" (columns: Site ID, Region, Group Region, Flag) */
+const SITE_GID="957693926";
+let SITEINFO={};
+const normG=v=>{const u=String(v||"").trim().toUpperCase();return u==="BMA"?"BMA":/^(CW|CENTRAL|WEST|CENTRAL[\s\/+-]*WEST|C\+W)$/.test(u)?"CW":u==="EAST"?"East":u==="SOUTH"?"South":""};
+const normR=v=>String(v||"").replace(/[\s-]+/g,"").toUpperCase();
+const lookup=x=>{const n=(x.sid||x.site).toUpperCase().trim();return SITEINFO[n]||SITEINFO[n.split("(")[0]]||null};
+function ingestSites(tb){
+  const t=tb.filter(r=>r.some(c=>String(c).trim()));if(!t.length)return false;
+  const h=t[0].map(c=>String(c).trim().toUpperCase()),ix=(...n)=>{for(const k of n){const i=h.indexOf(k);if(i>=0)return i}return -1};
+  const iS=ix("SITE ID","SITEID","SITENAME"),iR=ix("REGION"),iG=ix("GROUP REGION"),iF=ix("FLAG"),iNT=ix("NODE TYPE","NODETYPE");
+  if(iS<0)return false;
+  const o={};
+  t.slice(1).forEach(r=>{const id=String(r[iS]||"").trim().toUpperCase();if(id)o[id]={reg:iR>=0?normR(r[iR]):"",grp:iG>=0?normG(r[iG]):"",flag:iF>=0?String(r[iF]||"").trim().toUpperCase():"",nt:iNT>=0?normNT(r[iNT]):""}});
+  if(!Object.keys(o).length)return false;
+  SITEINFO=o;return true;
+}
+async function ensureSites(){
+  const m=($("url").value.match(/\/d\/([\w-]+)/)||[])[1];if(!m)return false;
+  let t;
+  try{const r=await fetch(`https://docs.google.com/spreadsheets/d/${m}/gviz/tq?tqx=out:csv&gid=${SITE_GID}&_=${Date.now()}`,{cache:"no-store",signal:AbortSignal.timeout?AbortSignal.timeout(6000):undefined});if(!r.ok)throw new Error("HTTP "+r.status);t=parseCSV(await r.text())}
+  catch(e){return false}
+  return ingestSites(t);
+}
+const wsv=async p=>{const v=await p;await ensureSites();return v};
+const known=t=>!!(SITEINFO[t]||SMAP[t]);
+function sidOf(x){
+  if(!isSA(x))return "";
+  const n=x.site.toUpperCase().trim();
+  if(known(n)||known(n.split("(")[0]))return "";
+  const m=n.match(/^[A-Z]{3}\d{4,5}/);if(m&&known(m[0]))return m[0];
+  for(const v of [x.ci,x.subj]){const t=(String(v).toUpperCase().match(/[A-Z]{3,4}[0-9A-Z]{3,8}/g)||[]).find(known);if(t)return t}
+  return "";
+}
+const inList=x=>!!lookup(x)||siteKey(x)!==null;
+const grp=x=>{const i=lookup(x);if(i&&i.grp)return i.grp;const k=siteKey(x);if(!k)return "อื่นๆ";const g=SMAP[k];return g.startsWith("BMA")?"BMA":(g==="Central"||g==="West")?"CW":g};
 
 const $=id=>document.getElementById(id);
+const normNT=v=>{const u=String(v||"").trim().toUpperCase();return /^CX/.test(u)?"CX":u};
+const esc=v=>String(v).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
 function parseCSV(t,d=","){
   const out=[];let r=[],c="",q=false;
@@ -233,23 +277,45 @@ function parseCSV(t,d=","){
   return out;
 }
 
+/* parse sheet date text: dd/mm/yyyy hh:mm(:ss), yyyy-mm-dd hh:mm(:ss), AM/PM, Buddhist year */
+function parseDT(v){
+  v=String(v||"").trim();if(!v)return null;
+  const m=v.match(/(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})(?:[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if(!m)return null;
+  let a=+m[1],b=+m[2],c=+m[3],y,mo,d;
+  if(m[1].length===4){y=a;mo=b;d=c}else{y=c;if(b>12&&a<=12){mo=a;d=b}else{d=a;mo=b}}
+  if(y<100)y+=2000;if(y>2400)y-=543;
+  let hh=m[4]?+m[4]:0;const ap=(m[7]||"").toUpperCase();
+  if(ap==="PM"&&hh<12)hh+=12;if(ap==="AM"&&hh===12)hh=0;
+  const dt=new Date(y,mo-1,d,hh,m[5]?+m[5]:0,m[6]?+m[6]:0);
+  return isNaN(dt)?null:dt;
+}
+const hm=ms=>{const t=Math.round(Math.abs(ms)/60000);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")+" h"};
+/* Within = now is before TARGETFINISH (time left), Over = past TARGETFINISH (time overdue) */
+/* Over first (most overdue on top), then Within (least time left first), then tickets without a target */
+const slaRank=x=>!x.target?2:(x.target<Date.now()?0:1);
+const cmpSla=(x,y)=>slaRank(x)-slaRank(y)||((x.target&&y.target)?x.target-y.target:0)||x.site.localeCompare(y.site)||x.id.localeCompare(y.id);
+function slaOf(x){if(!x.target)return null;const d=x.target-Date.now();return{over:d<0,txt:(d<0?"Over ":"Within ")+hm(d)}}
+const holderOf=v=>{v=String(v||"").trim();return(!v||/^none$/i.test(v))?"ยังไม่มีผู้ถือ":v};
 function ingest(text,d,src="Google Sheet"){
   const t=(Array.isArray(text)?text:parseCSV(text,d)).filter(r=>r.some(x=>String(x).trim()));
   const h=t[0].map(x=>String(x).trim().toUpperCase());
   const ix=n=>h.indexOf(n);
-  const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY");
+  const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY"),iH=ix("TECH_TEAM"),iP=ix("PROVINCE"),iA=ix("AGING"),iC=ix("CREATIONDATE")>=0?ix("CREATIONDATE"):ix("CREATION DATE"),iF=ix("TARGETFINISH")>=0?ix("TARGETFINISH"):ix("TARGET FINISH"),iN=ix("CINAME"),iY=ix("NODE TYPE");
   if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
-  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():""})).filter(x=>x.id);
+  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,nt:iY>=0?normNT(r[iY]):"",bb:/broadband/i.test(r.join(" "))})).filter(x=>x.id);
+  window.bbN=rows.filter(x=>x.bb).length;rows=rows.filter(x=>!x.bb);
+  rows.forEach(x=>{x.sid=sidOf(x);x.prov=provOf(x)});
   setUpd(src,track(src,t));
   render();
 }
 
 const KW={
-  power:"Generator|Mains?(?:fail|\\s*power|\\b)|urgent",
+  power:"Generator|(?<![a-z])Mains?(?:fail|\\s*power|\\b)|urgent",
   ofc:"OFC"
 };
 let kwMode="all";
-let sevSet=new Set(["NSA1","NSA2","NSA3"]);
+let sevSet=new Set(["NSA1","NSA2","NSA3","SA1","SA2","SA3","SA4"]);
 function buildRegex(){
   if(kwMode==="all")return null;
   const src=kwMode==="both"?KW.power+"|"+KW.ofc:KW[kwMode];
@@ -257,50 +323,74 @@ function buildRegex(){
 }
 
 const ORDER=["BMA","CW","East","South","อื่นๆ"];
+const RCOL={"BMA":["#0052FF","0,82,255"],"CW":["#16A34A","22,163,74"],"East":["#EA580C","234,88,12"],"South":["#7C3AED","124,58,237"],"อื่นๆ":["#64748B","100,116,139"]};
 
-function filtered(){
-  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=$("onlylist").checked;
-  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||re.test(x.subj))&&(!sf||x.site.toLowerCase().includes(sf))&&(!rg||grp(x)===rg));
+/* Province: BMA sites use the REGION column (BMAW1/BMAW2/BMAE1/BMAE2...), other regions use PROVINCE */
+const BORD=["BMAW1","BMAW2","BMAE1","BMAE2","BMAE3"];
+const pord=p=>{const i=BORD.indexOf(p);return i<0?99:i};
+const pcmp=(a,b)=>pord(a)-pord(b)||a.localeCompare(b);
+/* province aliases: AYA is the same province as AYT */
+const PAL={AYA:"AYT"},pal=p=>PAL[p]||p;
+const provOf=x=>{const i=lookup(x);
+  if(grp(x)==="BMA"){const sm=SMAP[siteKey(x)]||"";return (i&&i.reg)||(sm.startsWith("BMA")?sm:"")||normR(x.region)||"BMA (ไม่ระบุ)"}
+  const fl=i&&/^[A-Z]{3}$/.test(i.flag||"")?i.flag:"";
+  if(fl)return pal(fl);
+  const n=(x.sid||x.site).toUpperCase().trim(),t=n.match(/^TOC-([A-Z]{3})/),m=n.match(/^[A-Z]{3}/);
+  return pal(t?t[1]:m?m[0]:"อื่นๆ")};
+function fillProv(){
+  const el=$("pv"),cur=el.value,cnt=new Map();
+  filtered(true).forEach(x=>cnt.set(x.prov,(cnt.get(x.prov)||0)+1));
+  const keys=[...cnt.keys()],b=keys.filter(p=>p.startsWith("BMA")).sort(pcmp),o=keys.filter(p=>!p.startsWith("BMA")).sort((a,c)=>a.localeCompare(c));
+  const opt=p=>`<option value="${esc(p)}">${esc(p)} (${cnt.get(p)})</option>`;
+  el.innerHTML='<option value="">ทั้งหมด</option>'+(b.length?`<optgroup label="BMA">${b.map(opt).join("")}</optgroup>`:"")+(o.length?`<optgroup label="Site code">${o.map(opt).join("")}</optgroup>`:"");
+  el.value=cnt.has(cur)?cur:"";
+}
+function filtered(sk){
+  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,pv=$("pv").value,ol=$("onlylist").checked;
+  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||!pv||x.prov===pv));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
 const HP="ติดตามขอ Update กลุ่มที่มีความเสี่ยงเรื่องระบบไฟฟ้า"+SUF;
 const HO="ติดตามขอ Update กลุ่มที่มีความเสี่ยง Simplex กระทบการเกิด Ticket SA"+SUF;
-const lines=l=>{
-  const g=new Map();
-  l.forEach(x=>{if(!g.has(x.site))g.set(x.site,[]);g.get(x.site).push(x.id)});
-  return [...g].map(([site,ids])=>site+"\n"+ids.join("\n")).join("\n");
-};
-const linesR=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.length?rg+"\n"+lines(it):""}).filter(Boolean).join("\n\n");
-function text(items,wr){
-  const B=wr?linesR:lines;
-  if(kwMode==="power")return HP+"\n\n"+B(items);
-  if(kwMode==="ofc")return HO+"\n\n"+B(items);
-  if(kwMode==="both"){
-    const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
-    const p=items.filter(x=>rP.test(x.subj)),o=items.filter(x=>rO.test(x.subj));
-    return [p.length?HP+"\n\n"+B(p):"",o.length?HO+"\n\n"+B(o):""].filter(Boolean).join("\n\n");
-  }
-  return "ติดตาม Update\n\n"+B(items);
+const isSA=x=>/^SA\d/i.test(x.sev);
+const fmtAge=d=>{const n=parseFloat(d);if(!isFinite(n))return"";const h=Math.round(n*24);return h<24?h+"h":Math.floor(h/24)+"d "+(h%24)+"h"};
+const siteLabel=x=>[x.nt||(lookup(x)||{}).nt||"",x.sid||x.site].filter(Boolean).join(" ");
+const tline=x=>siteLabel(x);
+function provBlock(it){
+  const g=new Map();it.forEach(x=>{if(!g.has(x.prov))g.set(x.prov,[]);g.get(x.prov).push(x)});
+  return [...g].sort(([p],[q])=>pcmp(p,q)).map(([p,l])=>{
+    const seen=new Set();
+    return p+"\n"+l.sort(cmpSla).filter(x=>!seen.has(x.id)&&seen.add(x.id)).map(x=>tline(x)+"\n"+x.id).join("\n");
+  }).join("\n");
+}
+const regionBlock=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.length?rg+"\n"+provBlock(it):""}).filter(Boolean).join("\n\n");
+function text(items){
+  const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
+  const ot=items.filter(x=>!isSA(x)),sa=items.filter(isSA);
+  const secs=kwMode==="power"?[[HP,ot],["ติดตาม Update",sa]]:kwMode==="ofc"?[[HO,ot],["ติดตาม Update",sa]]:
+    [[HP,ot.filter(x=>rP.test(x.subj))],[HO,ot.filter(x=>rO.test(x.subj))],["ติดตาม Update",items.filter(x=>isSA(x)||(!rP.test(x.subj)&&!rO.test(x.subj)))]];
+  return secs.filter(([,l])=>l.length).map(([h,l])=>h+"\n\n"+regionBlock(l)).join("\n\n");
 }
 
 function render(){
+  fillProv();
   const list=filtered();
-  const esc=v=>String(v).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-  $("count").textContent=rows.length?`พบ ${list.length} Ticket`:"ยังไม่มีข้อมูล";
+  $("count").textContent=rows.length?`พบ ${list.length} Ticket`+(window.bbN?` · ตัด Broadband ${window.bbN}`:""):"ยังไม่มีข้อมูล";
   $("list").innerHTML="";
   ORDER.forEach(rg=>{
     const items=list.filter(x=>grp(x)===rg);
     if(!items.length)return;
-    const sec=document.createElement("div");
-    sec.innerHTML=`<div class="sh" style="border-radius:8px;margin:12px 0 6px"><b>${rg} <span class="mu">(${items.length})</span></b><button>Copy ${rg}</button></div>`;
+    const sec=document.createElement("div");sec.className="reg";const rc=RCOL[rg]||RCOL["อื่นๆ"];sec.style.setProperty("--rc",rc[0]);sec.style.setProperty("--rcb",rc[1]);
+    sec.innerHTML=`<div class="sh rh"><b>${rg} <span class="mu">(${items.length})</span></b><button>Copy ${rg}</button></div>`;
     sec.querySelector("button").onclick=e=>copy(text(items),e.target);
-    const bySite={};items.forEach(x=>(bySite[x.site]=bySite[x.site]||[]).push(x));
-    Object.keys(bySite).sort().forEach(site=>{
+    const byP={};items.forEach(x=>(byP[x.prov]=byP[x.prov]||[]).push(x));
+    Object.keys(byP).sort(pcmp).forEach(pv=>{
+      const l=byP[pv].sort(cmpSla);
       const d=document.createElement("div");d.className="site";
-      d.innerHTML=`<div class="sh"><b>${esc(site)} <span class="mu">${esc(bySite[site][0].region)} · ${bySite[site].length}</span></b><button class="sec">Copy</button></div>`+
-        bySite[site].map(x=>`<div class="t"><code>${esc(x.id)}</code><span>${esc(x.subj)}</span></div>`).join("");
-      d.querySelector("button").onclick=e=>copy(text(bySite[site]),e.target);
+      d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}</span></b><button class="sec">Copy</button></div>`+
+        l.map(x=>{const z=slaOf(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
+      d.querySelector("button").onclick=e=>copy(text(l),e.target);
       sec.appendChild(d);
     });
     $("list").appendChild(sec);
@@ -343,7 +433,7 @@ $("load").onclick=async()=>{
       const g=(u.match(/gid=(\d+)/)||[])[1];
       const res=await fetch(`https://docs.google.com/spreadsheets/d/e/${pm[1]}/pub?output=csv${g?"&gid="+g:""}&_=${Date.now()}`,{cache:"no-store"});
       if(!res.ok)throw new Error("HTTP "+res.status);
-      ingest(await res.text());$("msg").textContent="โหลดสำเร็จ";
+      ingest(await wsv(res.text()));$("msg").textContent="โหลดสำเร็จ";
     }catch(e){$("msg").textContent="โหลดไม่สำเร็จ: "+e.message+" (ใช้ช่องวางข้อมูลแทนได้)";fail(e.message)}
     return;
   }
@@ -353,28 +443,28 @@ $("load").onclick=async()=>{
   try{
     const res=await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv${gid?"&gid="+gid:""}&_=${Date.now()}`,{cache:"no-store"});
     if(!res.ok)throw new Error("HTTP "+res.status);
-    ingest(await res.text());
+    ingest(await wsv(res.text()));
     $("msg").textContent="โหลดสำเร็จ";
   }catch(e1){
-    try{ingest(await viaScript(m[1],gid));$("msg").textContent="โหลดสำเร็จ"}
+    try{ingest(await wsv(viaScript(m[1],gid)));$("msg").textContent="โหลดสำเร็จ"}
     catch(e2){$("msg").textContent="โหลดอัตโนมัติไม่ได้ (ชีตน่าจะยังไม่เปิดแชร์) ให้ใช้ช่องวางข้อมูลด้านล่างแทน";fail("ชีตอาจยังไม่เปิดแชร์")}
   }
 };
 
-$("usepaste").onclick=()=>{
-  try{ingest($("paste").value,"\t","ข้อมูลที่วาง");$("msg").textContent="ใช้ข้อมูลที่วางแล้ว"}
+$("usepaste").onclick=async()=>{
+  try{await ensureSites();ingest($("paste").value,"\t","ข้อมูลที่วาง");$("msg").textContent="ใช้ข้อมูลที่วางแล้ว"}
   catch(err){$("msg").textContent=err.message}
 };
 
 $("file").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
-  f.text().then(t=>{try{ingest(t,",","ไฟล์ CSV");$("msg").textContent="โหลดจากไฟล์สำเร็จ"}catch(err){$("msg").textContent=err.message}});
+  f.text().then(async t=>{try{await ensureSites();ingest(t,",","ไฟล์ CSV");$("msg").textContent="โหลดจากไฟล์สำเร็จ"}catch(err){$("msg").textContent=err.message}});
 };
 
 $("sitef").oninput=render;
-$("sev").onchange=e=>{const v=e.target.value;sevSet=v==="all"?new Set(["NSA1","NSA2","NSA3"]):new Set([v]);render()};
+$("sev").onchange=e=>{const v=e.target.value,N=["NSA1","NSA2","NSA3"],S=["SA1","SA2","SA3","SA4"];sevSet=new Set(v==="all"?[...N,...S]:v==="NSA"?N:v==="SA"?S:[v]);render()};
 $("kw").onchange=e=>{kwMode=e.target.value;render()};
-$("rg").onchange=render;$("onlylist").onchange=render;
+$("rg").onchange=()=>{$("pv").value="";render()};$("pv").onchange=render;$("onlylist").onchange=render;
 $("refresh").onclick=()=>$("load").click();
 $("sync").onclick=()=>$("load").click();
 setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
