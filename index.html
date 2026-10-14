@@ -38,6 +38,13 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
 .t code{white-space:nowrap;color:var(--ac);font-family:ui-monospace,Consolas,monospace}
 .t span{color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mu{color:var(--mu);font-size:12px}
+.sync{display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;padding:7px 14px;margin:0 0 14px;border:1px solid var(--bd);border-radius:999px;background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:13px;cursor:pointer;user-select:none}
+.sync i{width:10px;height:10px;border-radius:50%;background:var(--mu);flex:none}
+.sync.ok i{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.sync.busy i{background:var(--ac);box-shadow:0 0 10px var(--ac);animation:pl 1s ease-in-out infinite}
+.sync.err i{background:#f87171;box-shadow:0 0 10px #f87171}
+.sync b{color:var(--tx)}
+@keyframes pl{50%{opacity:.25}}
 #count{color:var(--ac2);text-shadow:0 0 10px rgba(217,70,239,.5)}
 #msg{margin-top:8px}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(34,211,238,.3);border-radius:8px}
@@ -46,8 +53,9 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
 <body>
 <div class="wrap">
 <h1>W&W · Ticket Follow-up</h1>
+<div id="sync" class="sync" title="คลิกเพื่อ Sync ตอนนี้"><i></i><span><b>ยังไม่ได้ Sync</b></span></div>
 
-<div class="card">
+<div class="card" style="display:none">
   <div class="row">
     <div style="flex:3"><label>ลิงก์ Google Sheet</label><input type="text" id="url" value="https://docs.google.com/spreadsheets/d/1TtEps-4CwrDe3P77LN_XEikTvO89DLdOenxL3fb0mZ4/edit?gid=338097387#gid=338097387"></div>
     <div style="flex:0;min-width:auto"><button id="load">โหลดข้อมูล</button></div>
@@ -61,7 +69,7 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
   <div class="mu" id="msg">ชีตต้องแชร์เป็น "ทุกคนที่มีลิงก์ดูได้" ถ้าโหลดไม่ได้ ให้ดาวน์โหลดเป็น CSV แล้วอัปโหลดแทน</div>
 </div>
 
-<div class="card">
+<div class="card" style="display:none">
   <label>วิธีสำรอง: ในชีตกด Ctrl+A → Ctrl+C แล้ววางที่นี่ (ต้องรวมแถวหัวคอลัมน์)</label>
   <textarea id="paste" placeholder="วางข้อมูลจากชีตที่นี่"></textarea>
   <div style="margin-top:6px"><button class="sec" id="usepaste">ใช้ข้อมูลที่วาง</button></div>
@@ -69,20 +77,11 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
 
 <div class="card">
   <div class="row">
-    <div style="flex:3"><label>กรองจากคำใน Subject</label>
-      <div id="kwbtns" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="sec" data-k="all">ทั้งหมด</button>
-        <button class="sec" data-k="power">ระบบไฟ</button>
-        <button class="sec" data-k="ofc">OFC</button>
-        <button class="sec on" data-k="both">ระบบไฟ + OFC</button>
-      </div></div>
+    <div style="flex:1"><label>กรองจากคำใน Subject</label>
+      <select id="kw"><option value="all">ทั้งหมด</option><option value="power">ระบบไฟ</option><option value="ofc">OFC</option></select></div>
     <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
-    <div style="flex:2"><label>Severity</label>
-      <div id="sevbtns" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="sec on" data-s="NSA1">NSA1</button>
-        <button class="sec on" data-s="NSA2">NSA2</button>
-        <button class="sec on" data-s="NSA3">NSA3</button>
-      </div></div>
+    <div><label>Severity</label>
+      <select id="sev"><option value="all">ทั้งหมด</option><option>NSA1</option><option>NSA2</option><option>NSA3</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
     <div><label>Status</label><select id="stat"><option value="">ทั้งหมด</option></select></div>
@@ -103,11 +102,19 @@ button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow
 
 <script>
 let rows=[];
+let lastOk="";
+function setSync(state,title,detail){
+  const el=document.getElementById("sync");
+  el.className="sync "+state;
+  el.innerHTML=`<i></i><span><b>${title}</b>${detail?` <span class="mu">· ${detail}</span>`:""}</span>`;
+}
 function setUpd(src){
   const n=new Date();
   const t=n.toLocaleTimeString("th-TH",{hour12:false});
   const d=n.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"numeric"});
   $("upd").innerHTML=`<span style="color:var(--ok)">●</span> อัปเดตข้อมูลล่าสุดเมื่อ <b style="color:var(--tx)">${t}</b> · ${d} · จาก ${src}`;
+  lastOk=`${t} · ${d}`;
+  setSync("ok","Sync แล้ว ✓",`${t} · ${d} · จาก ${src}`);
 }
 const SG={
 "BMA":`BKK0051 BKK0099 BKK0143 BKK0145 BKK0146 BKK0156 BKK0203 NTB01001 NTB01003 NTB01004 NTB01005 NTB01006
@@ -224,8 +231,8 @@ const KW={
   power:"Generator|Mains?(?:fail|\\s*power|\\b)|urgent",
   ofc:"OFC"
 };
-let kwMode="both";
-const sevSet=new Set(["NSA1","NSA2","NSA3"]);
+let kwMode="all";
+let sevSet=new Set(["NSA1","NSA2","NSA3"]);
 function buildRegex(){
   if(kwMode==="all")return null;
   const src=kwMode==="both"?KW.power+"|"+KW.ofc:KW[kwMode];
@@ -308,6 +315,8 @@ function viaScript(id,gid){
 
 $("load").onclick=async()=>{
   const u=$("url").value.trim();
+  setSync("busy","กำลัง Sync…","");
+  const fail=m=>setSync("err","Sync ไม่สำเร็จ",m+(lastOk?` · สำเร็จล่าสุด ${lastOk}`:""));
   const pm=u.match(/\/d\/e\/([\w-]+)/);
   if(pm){
     $("msg").textContent="กำลังโหลด...";
@@ -316,11 +325,11 @@ $("load").onclick=async()=>{
       const res=await fetch(`https://docs.google.com/spreadsheets/d/e/${pm[1]}/pub?output=csv${g?"&gid="+g:""}&_=${Date.now()}`,{cache:"no-store"});
       if(!res.ok)throw new Error("HTTP "+res.status);
       ingest(await res.text());$("msg").textContent="โหลดสำเร็จ";
-    }catch(e){$("msg").textContent="โหลดไม่สำเร็จ: "+e.message+" (ใช้ช่องวางข้อมูลแทนได้)"}
+    }catch(e){$("msg").textContent="โหลดไม่สำเร็จ: "+e.message+" (ใช้ช่องวางข้อมูลแทนได้)";fail(e.message)}
     return;
   }
   const m=u.match(/\/d\/([\w-]+)/),gid=(u.match(/gid=(\d+)/)||[])[1];
-  if(!m){$("msg").textContent="ลิงก์ไม่ถูกต้อง";return}
+  if(!m){$("msg").textContent="ลิงก์ไม่ถูกต้อง";fail("ลิงก์ไม่ถูกต้อง");return}
   $("msg").textContent="กำลังโหลด...";
   try{
     const res=await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv${gid?"&gid="+gid:""}&_=${Date.now()}`,{cache:"no-store"});
@@ -329,7 +338,7 @@ $("load").onclick=async()=>{
     $("msg").textContent="โหลดสำเร็จ";
   }catch(e1){
     try{ingest(await viaScript(m[1],gid));$("msg").textContent="โหลดสำเร็จ"}
-    catch(e2){$("msg").textContent="โหลดอัตโนมัติไม่ได้ (ชีตน่าจะยังไม่เปิดแชร์) ให้ใช้ช่องวางข้อมูลด้านล่างแทน"}
+    catch(e2){$("msg").textContent="โหลดอัตโนมัติไม่ได้ (ชีตน่าจะยังไม่เปิดแชร์) ให้ใช้ช่องวางข้อมูลด้านล่างแทน";fail("ชีตอาจยังไม่เปิดแชร์")}
   }
 };
 
@@ -344,19 +353,11 @@ $("file").onchange=e=>{
 };
 
 $("sitef").oninput=render;
-document.querySelectorAll("#sevbtns button").forEach(b=>b.onclick=()=>{
-  const k=b.dataset.s;
-  sevSet.has(k)?sevSet.delete(k):sevSet.add(k);
-  b.classList.toggle("on",sevSet.has(k));
-  render();
-});
-document.querySelectorAll("#kwbtns button").forEach(b=>b.onclick=()=>{
-  kwMode=b.dataset.k;
-  document.querySelectorAll("#kwbtns button").forEach(x=>x.classList.toggle("on",x===b));
-  render();
-});
+$("sev").onchange=e=>{const v=e.target.value;sevSet=v==="all"?new Set(["NSA1","NSA2","NSA3"]):new Set([v]);render()};
+$("kw").onchange=e=>{kwMode=e.target.value;render()};
 $("stat").onchange=render;$("rg").onchange=render;$("onlylist").onchange=render;
 $("refresh").onclick=()=>$("load").click();
+$("sync").onclick=()=>$("load").click();
 setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("auto").checked&&rows.length)$("load").click()});
 $("load").click();
