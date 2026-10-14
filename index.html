@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W&W · Ticket Follow-up</title>
+<style>
+:root{--bg:#070b1a;--card:rgba(18,26,52,.62);--tx:#e6f1ff;--mu:#7f93b8;--bd:rgba(80,140,255,.22);--ac:#22d3ee;--ac2:#d946ef;--ok:#34d399;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font:14px/1.5 "Segoe UI",system-ui,"Noto Sans Thai",sans-serif;color:var(--tx);padding:20px;
+  background:radial-gradient(900px 500px at 8% -10%,rgba(34,211,238,.18),transparent 60%),
+             radial-gradient(800px 500px at 100% 0%,rgba(217,70,239,.16),transparent 60%),
+             linear-gradient(180deg,#070b1a,#0a1030 60%,#060914);background-attachment:fixed}
+.wrap{max-width:1000px;margin:auto}
+h1{font-size:20px;margin:0 0 14px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+  background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 10px rgba(34,211,238,.35))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.02) inset,0 8px 32px rgba(0,0,0,.45)}
+label{display:block;font-size:11px;color:var(--mu);margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase}
+input[type=text],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--bd);border-radius:8px;background:rgba(5,9,24,.7);color:var(--tx);font:inherit;outline:none;transition:.15s}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(34,211,238,.18),0 0 14px rgba(34,211,238,.25)}
+input[type=checkbox]{accent-color:var(--ac)}
+textarea{min-height:60px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row>div{flex:1;min-width:180px}
+button{padding:9px 16px;border:0;border-radius:8px;background:linear-gradient(90deg,var(--ac),#3b82f6);color:#04101f;font:inherit;font-weight:600;cursor:pointer;
+  box-shadow:0 0 16px rgba(34,211,238,.35);transition:.15s}
+button:hover{filter:brightness(1.12);box-shadow:0 0 22px rgba(34,211,238,.6)}
+button.sec{background:transparent;color:var(--ac);border:1px solid var(--ac);box-shadow:none}
+button.sec.on{background:var(--ac);color:#04101f;box-shadow:0 0 14px rgba(34,211,238,.5)}
+button.sec:hover{background:rgba(34,211,238,.12);box-shadow:0 0 14px rgba(34,211,238,.35)}
+button.done{background:var(--ok);color:#04201a;border-color:var(--ok);box-shadow:0 0 18px rgba(52,211,153,.55)}
+.site{border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;overflow:hidden;background:rgba(8,14,36,.45)}
+.sh{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:rgba(34,211,238,.07);border-bottom:1px solid var(--bd)}
+.sh b{font-size:15px}
+.t{padding:6px 12px;border-top:1px solid rgba(80,140,255,.12);display:flex;gap:10px;font-size:13px}
+.t code{white-space:nowrap;color:var(--ac);font-family:ui-monospace,Consolas,monospace}
+.t span{color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu{color:var(--mu);font-size:12px}
+#count{color:var(--ac2);text-shadow:0 0 10px rgba(217,70,239,.5)}
+#msg{margin-top:8px}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(34,211,238,.3);border-radius:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>W&W · Ticket Follow-up</h1>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3"><label>ลิงก์ Google Sheet</label><input type="text" id="url" value="https://docs.google.com/spreadsheets/d/1TtEps-4CwrDe3P77LN_XEikTvO89DLdOenxL3fb0mZ4/edit?gid=338097387#gid=338097387"></div>
+    <div style="flex:0;min-width:auto"><button id="load">โหลดข้อมูล</button></div>
+    <div style="flex:0;min-width:auto"><button class="sec" onclick="file.click()">อัปโหลด CSV</button><input type="file" id="file" accept=".csv" hidden></div>
+  </div>
+  <div class="row" style="margin-top:10px;align-items:center">
+    <div style="flex:0;min-width:auto"><button class="sec" id="refresh">รีเฟรชข้อมูล</button></div>
+    <div style="flex:0;min-width:auto;white-space:nowrap"><label style="display:inline;color:var(--tx);text-transform:none"><input type="checkbox" id="auto" checked> รีเฟรชอัตโนมัติทุก 5 นาที</label></div>
+    <div id="upd" style="flex:2" class="mu">ยังไม่มีข้อมูล</div>
+  </div>
+  <div class="mu" id="msg">ชีตต้องแชร์เป็น "ทุกคนที่มีลิงก์ดูได้" ถ้าโหลดไม่ได้ ให้ดาวน์โหลดเป็น CSV แล้วอัปโหลดแทน</div>
+</div>
+
+<div class="card">
+  <label>วิธีสำรอง: ในชีตกด Ctrl+A → Ctrl+C แล้ววางที่นี่ (ต้องรวมแถวหัวคอลัมน์)</label>
+  <textarea id="paste" placeholder="วางข้อมูลจากชีตที่นี่"></textarea>
+  <div style="margin-top:6px"><button class="sec" id="usepaste">ใช้ข้อมูลที่วาง</button></div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3"><label>กรองจากคำใน Subject</label>
+      <div id="kwbtns" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sec" data-k="all">ทั้งหมด</button>
+        <button class="sec" data-k="power">ระบบไฟ</button>
+        <button class="sec" data-k="ofc">OFC</button>
+        <button class="sec on" data-k="both">ระบบไฟ + OFC</button>
+      </div></div>
+    <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
+    <div style="flex:2"><label>Severity</label>
+      <div id="sevbtns" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sec on" data-s="NSA1">NSA1</button>
+        <button class="sec on" data-s="NSA2">NSA2</button>
+        <button class="sec on" data-s="NSA3">NSA3</button>
+      </div></div>
+    <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
+    <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
+    <div><label>Status</label><select id="stat"><option value="">ทั้งหมด</option></select></div>
+  </div>
+  <div class="mu" style="margin-top:6px">ระบบไฟ = Generator, Main, urgent · OFC = OFC (ไม่สนตัวพิมพ์เล็ก-ใหญ่)</div>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:center">
+    <div><b id="count">ยังไม่มีข้อมูล</b></div>
+    <div style="flex:0;min-width:auto;white-space:nowrap">
+      <button id="copyall">Copy ตามตัวกรอง</button>
+    </div>
+  </div>
+  <div id="list" style="margin-top:10px"></div>
+</div>
+</div>
+
+<script>
+let rows=[];
+function setUpd(src){
+  const n=new Date();
+  const t=n.toLocaleTimeString("th-TH",{hour12:false});
+  const d=n.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"numeric"});
+  $("upd").innerHTML=`<span style="color:var(--ok)">●</span> อัปเดตข้อมูลล่าสุดเมื่อ <b style="color:var(--tx)">${t}</b> · ${d} · จาก ${src}`;
+}
+const SG={
+"BMA":`BKK0051 BKK0099 BKK0143 BKK0145 BKK0146 BKK0156 BKK0203 NTB01001 NTB01003 NTB01004 NTB01005 NTB01006
+NTB02001 NTB03001 NTB03002 NTB04001 NTB04002 NTB04003 NTB04004 NTB04006 NTB05001 NTB05002 NTB06001 NTB06002
+NTB06003 PTT01001 PTT01002 PTT02001 PTT02002 PTT02003 PTT03001 PTT03002 PTT03003 PTT03005 PTT04001 PTT05001
+PTT05002 PTT06001 PTT06002 PTT06003 BKK19002 BKK19001 BKK25002 BKK25001 BKK22001 BKK22002 BKK20001 BKK35001
+BKK15002 BKK21003 BKK21001 BKK21002 BKK35002 BKK50001 BKK18004 BKK18001 BKK23001 BKK40001 BKK23002 BKK48001
+BKK24002 BKK49002 BKK40002 BKK40003 BKK49001 BKK24001 BKK15001 BKK0025 BKK0026 BKK0030 BKK0045 BKK0053
+BKK0054 BKK0056 BKK0069 BKK0089 BKK0090 BKK0135 BKK0153 BKK0180 BKK46002 BKK46001 BKK10001 BKK46003
+BKK30001 BKK29001 BKK29002 BKK32002 BKK47002 BKK47001 BKK32003 BKK41001 BKK42001 BKK42002 BKK062A4 BKK27001
+BKK06001 BKK44001 BKK11002 BKK11001 BKK41002 BKK05001 BKK05003 BKK10002 BKK03001 BKK03002 BKKC1017 BKK32001
+BKK11003 BKK27002 BKK43001 BKK05002 BKK06003 BKK36001 BKK36002 BKK06002 BKK0008 BKK0041 BKK0171 BKK0274
+BKK0031 BKK0035 BKK0038 BKK0050 BKK0077 BKK0080 BKK0096 BKK0100 BKK0101 BKK0102 BKK0104 BKK0113
+BKK0115 BKK0177 BKK0226 BKK0228 BKK0234 BKK0385 BKK059N BKK060N SMP06002 SMP02001 SMP06003 SMP02002
+SMP01001 SMP03001 SMP03002 SMP04002 BKK49003 SMP04001 SMP01004 SMP01005 SMP01002 SMP01007 SMP01003 BKK0047
+BKK0052 BKK0081 BKK0148 BKK0149 BKK0150 BKK0163 BKK0294 BKK09001 BKK39001 BKK17001 BKK38001 BKK45002
+BKK45001 BKK09002 BKK37001 PNCCBK51 SPARAGON BKK33002 BKK37002 BKK14001 BKK33001 BKK02001 BKK08001 BKK04001
+BKK12001 BKK28001 BKK28002 BKK31001 BKK0002 BKK0004 BKK0005 BKK0006 BKK0010 BKK0016 BKK001N BKK0021
+BKK0024 BKK0028 BKK0032 BKK0043 BKK007N BKK0111 BKK0114 BKK0116 BKK0119 BKK0125 BKK0159 BKK0160
+BKK0194 BKK0259 BKK0275 BKK0280 BKK029N BKK0302 BKK062N BKK2047 BKK3055 BKK5976 TOC-PSI BKK30AGN
+BKK27AGN BKK10AGN AGN-HAM04 SMP01AGN SMP06AGN BKK22AGN BKK40AGN BKK49AGN PTT06AGN PTT03AGN NTB03AGN PTT07AGN
+NTB06AGN BKK28AGN BKK26AGN`,
+"East":`TRT2006 TRT6021 TRT3204 TRT6004 CCS6501 CCS2227 CCS1860 TRT3001 CCS6001 CCS6010 CTB1650 CTB6022
+CCS1632 CTB2211 CTB8554 CCS3341 CTB0605 CCS0013 CCS3013 CTB6001 CCS3151 CTB2164 RYG2341 RYG2332
+CCS0006 RYG6503 RYG0032 RYG3500 RYG4002 RYG2113 CBR0561 RYG8556 CBR4011 RYG2002 RYG1644 CBR1641
+CBR1001 CBR6501 RYG6023 RYG1873 CBR0105 CBR0109 CBR1605 CBR0029 CBR01200(6001) CBR1821 CBR0003 CBR3449
+CBR01100 CBR7443 CBR4014 CBR1825 CBR3012 CBR2507 CBR1617 CBR2452 CBR5563 NKN6008 CBR2031 NKN1861
+CBR6043 NKN1602 CBR1611 NKN2044 CBR2005 NKN6004 CBR8734 CBR0103 CBR6061 CBR0208 CBR6599(MTSO) PCR0567
+PCR1642 RYG0012 PCR2372 PCR1603 PCR1631 PCR2371 PCR4003 PCR4004 PCR2067 SKO8557 SKO8515 SKE270612A
+SKO6010 SKO2048 CBI0004 CBI0007 CBI0012 CBI0013 CBI0016 CBI0017 CBI0018 CBI0020 CBI0023 CBI0028
+CBI0039 CBI0043 CBI0066 CCO0005 CCO0019 CCO0026 CCO0033 CTI0001 CTI0002 CTI0007 CTI0008 CTI0011
+CTI0013 CTI0189 NYK0001 NYK0002 NYK0003 PRI0001 PRI0003 PRI0009 PRI0026 RYG0003 RYG0004 RYG0011
+RYG0015 RYG001N RYG0022 SKE0001 SKE0002 SKE0003 SKE0004 TRT0001 TRT0009 TRT0034 TOC-BSN CBR1258
+SKO1820 CCS6004 RYG0041 RYG0090 CBR0065`,
+"Central":`ATG0007 ATG0011 ATG6002 ATG6521 AYA0059 AYT0016 AYT0018 AYT0028 AYT0048 AYT1007 AYT1101 AYT1304
+AYT1305 AYT1308 AYT6012 AYT6028 AYT8658 CNT1237 CNT1238 CNT1241 CNT1242 CNT1244 CNT1902 CNT1907
+CNT6502 LBR0001 LBR0011 LBR0012 LBR0018 LBR0023 LBR0024 LBR1028 LBR1307 LBR6004 LBR6010 LBR6501
+LBR6502 NKW0567 NKW1070 NKW1076 NKW1082 NKW1085 NKW1239 NKW1260 NKW1706 NKW2008 NKW8005 NKW8557
+SBR0003 SBR0008 SBR6710 SRB0010 SRB0023 SRB0029 SRB0037 SRB0039 SRB1301 SRB6023 UTT0620 UTT0621
+UTT1153 UTT1603 UTT8520 ATG0001 AYTC002 AYTC003 AYA0005 AYA0007 AYA0011 AYA0012 CNT0001 CNT0007
+LRI0004 LRI0005 LRI0009 LRI0010 LRI0014 NSN0010 NSN0015 NSN0021 NSN0032 SBR0006 SRI0005 SRI0006
+SRI0008 SRBC012 SRI0022 UTI0001 UTI0004 UTI0025 NSN0014`,
+"West":`NKT0023 NKT1415 NKT0019 NKT6012 NKT6014 NKT0003 NKT8525 NKT0010 NKT0029 NKT1102 NKT0015 NKT6003
+NKT06001 NKT6017 NKT6011 NKT8618 NKT01004 NKT0021 NKT0020 SPB6014 SPB1031 SPB6501 SPB0011 SPB6007
+SPB0037 SPB6004 SPB6016 SPB0014 SPB6002 KCN1105 KCN6009 KCN6018 KCN6038 KCN1014 KCN6039 KCN1021
+KCN6045 KCN6501 KCN0008 KCN6021 KCN1401 KCN6004 KCN6030 KCN6034 KCN6025 KCN6026 KCN0006 SMK6001
+SMK1007 SMK01001 SMK1002 SMK6005 SMK6008 SMK0020 SMK1102 SMK02002 SMK6009 SMS1201 SMS8519 SMS6004
+SMS0007 RCB1014 RCB6014 RCB05100 RCB6501 RCB6502 RCB0003 RCB1024 RCB6521 RCB1523 RCB6016 RCB1535
+RCB1027 RCB0016 RCB0017 KRI0002 KRI0003 KRI0004 KRI0006 KRI0009 KRI0046 KRI0013 NPT0001 NPT0003
+NPT0005 RBR0001 RBR0003 RBR0006 RBR0016 RBR0127 SKM0001 SKN0002 SKN0003 SKN0004 SPB0001 SPB0004
+SPB0012 SPB0017`,
+"South":`CPN0011T CPN1007 CPN1012 CPN1017 CPN0032 CPN1004 CPN1008 CPN1032 CPN0017 CPN1038 KBI0007 KBI0010
+KBI0011T KBI0023 KBI7232 KBI0028 KBI0038 KBI1010 KBI1035 KBI1063 PKT0009T PKT0012 PKT0013 CPN0003
+PKT0029 PKT0030 CPN0011D CPN0012 PKN0002 PKT1023 PKT7165 PKN0001 PNA0008 PNA0013T PKN0003 PNA0023
+PKN0004 PNA0037 PNA1002 PNA1019 RNG0009 RNG1012 RNG1041 RNG8522 RNG8534 SRT0002 SRT0005 PKN0005
+SRT0016 PKN0010 PKN0016 SRT1017 SRT1021 SRT1022 SRT1038 SRT1049 SRT1063 SRT1113 SRT1135 SRT1144
+SRT7164 SRT8361 SRT8613 SRT0082 PBR1102 PBR1501 PBR1523 PBR1201 PBR0021 PBR0010 PBR0013 PBR6005
+PBR6521 PKN0032 PBR0023 PCK1101 PCK0004 PCK0032 PCK6501 PCK1016 PCK6010 PCK0002 PCK6522 PCK0006
+PCK0009 PCK1011 PCK7274 CPN0001 CPN0008 PNA0016 PKT002N PNA0024 CPN0007 PNA0013D PNA0014 CPN0086
+KBI0003 KBI0005 KBI0011D KBI0020 PBI0004 PNA0018 PBR0016 PBI0013 PBI0244 PBI0007 PBI0012 PKT0022
+PKT0035 PKT01102 PKT1005 PKT8557 PKN0124 PKT0005 PKT0009D PKT0017 PKT0097 PKT0155 PKT0325 PNA0001
+PNA0003 PNA0006 SRT0012 SRT0020 SRT0032 RNG0001 RNG0002 RNG0007 SNI0004 SNI0005 SNI0007 SNI0008
+SNI0010 SNI0015 SNI0017 SNI0018 SNI0029 SNI0249 PKT0002N SNI0006 NKS0001 NKS0017 NKS0018 NKS0020
+NKS0021 NKS0025 NKS0028 NKS0030 NKS0042 NKS0071 NKS0072 NKS1009 NKS1013 NKS1036 NKS1047 NKS1068
+KNM-PEA NRT1004 NRT1007 NRT1012 NRT1015 NRT1039 NRT8521 NRT8522 NRT8537 PTL0016 PTL0022 PTL1008
+PTL1024 PTN0022 PTN1005 PTN1015 PTN1021 PTN1025 PTN8527 SKA0017 SKA0018 SKA0020 SKA0030 SKA0035
+SKA0061 SKA0074 SKA0092 SKA1020 SKA1041 SKA1064 SKA1067 SKA7196 SKA6508 SKA8556 STN1001 STN1002
+STN1003 STN1004 STN8502 TRG0003 TRG0009 TRG0028 TRG1001 TRG1018 TRG1021 TRG1025 TRG1036 TRG1049
+TRG8526 YLA1004 YLA1007 YLA1008 YLA1017 YLA6749 NRT0001 NRT0002 NRT0003 NRT0004 NRT0008 NRT0010
+NRT0013 NRT0024 NWT0002 NWT0003 NWT0007 NWT0008 NWT0009 NWT0010 NWT0015 PLG0003 PLG0007 PLG0030
+PTN0003 PTN0004 PTN0007 PTN0008 PTN0193 SKA0006 SKA0010 SKA0013 SKA0015 SKA0016 SKA0019 SKA0025
+SKA0026 SKA0039 SKA0062 SKA0066 SKA0112 SKA0142 SKA0477 STN0001 STN0004 STN0006 STN0008 STN0035
+TRG0005 TRG0006 TRG0010 TRG0013 TRG0121 YLA0003 YLA0005 YLA0008 YLA0014 YLA0020 YLA0042 YLA0047
+TOC-SRT TOC-SKA`
+};
+const SMAP={};
+for(const k in SG)SG[k].split(/\s+/).forEach(x=>{if(x){SMAP[x]=k;SMAP[x.split("(")[0]]=SMAP[x.split("(")[0]]||k}});
+const siteKey=x=>{const n=x.site.toUpperCase().trim();return SMAP[n]?n:(SMAP[n.split("(")[0]]?n.split("(")[0]:null)};
+const inList=x=>siteKey(x)!==null;
+const grp=x=>{const k=siteKey(x);if(!k)return "อื่นๆ";const g=SMAP[k];return (g==="Central"||g==="West")?"CW":g};
+
+const $=id=>document.getElementById(id);
+
+function parseCSV(t,d=","){
+  const out=[];let r=[],c="",q=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){ if(ch=='"'){ if(t[i+1]=='"'){c+='"';i++} else q=false } else c+=ch }
+    else if(ch=='"') q=true;
+    else if(ch==d){r.push(c);c=""}
+    else if(ch=='\n'||ch=='\r'){ if(ch=='\r'&&t[i+1]=='\n')i++; r.push(c);out.push(r);r=[];c="" }
+    else c+=ch;
+  }
+  if(c||r.length){r.push(c);out.push(r)}
+  return out;
+}
+
+function ingest(text,d,src="Google Sheet"){
+  const keepStat=$("stat").value;
+  const t=(Array.isArray(text)?text:parseCSV(text,d)).filter(r=>r.some(x=>String(x).trim()));
+  const h=t[0].map(x=>String(x).trim().toUpperCase());
+  const ix=n=>h.indexOf(n);
+  const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY");
+  if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
+  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():""})).filter(x=>x.id);
+  const st=[...new Set(rows.map(x=>x.stat).filter(Boolean))].sort();
+  $("stat").innerHTML='<option value="">ทั้งหมด</option>'+st.map(s=>`<option>${s}</option>`).join("");
+  if(st.includes(keepStat))$("stat").value=keepStat;
+  setUpd(src);
+  render();
+}
+
+const KW={
+  power:"Generator|Mains?(?:fail|\\s*power|\\b)|urgent",
+  ofc:"OFC"
+};
+let kwMode="both";
+const sevSet=new Set(["NSA1","NSA2","NSA3"]);
+function buildRegex(){
+  if(kwMode==="all")return null;
+  const src=kwMode==="both"?KW.power+"|"+KW.ofc:KW[kwMode];
+  return new RegExp(src,"i");
+}
+
+const ORDER=["BMA","CW","East","South","อื่นๆ"];
+
+function filtered(){
+  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),st=$("stat").value,rg=$("rg").value,ol=$("onlylist").checked;
+  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||re.test(x.subj))&&(!sf||x.site.toLowerCase().includes(sf))&&(!st||x.stat===st)&&(!rg||grp(x)===rg));
+}
+
+const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
+const HP="ติดตามขอ Update กลุ่มที่มีความเสี่ยงเรื่องระบบไฟฟ้า"+SUF;
+const HO="ติดตามขอ Update กลุ่มที่มีความเสี่ยง Simplex กระทบการเกิด Ticket SA"+SUF;
+const lines=l=>{
+  const g=new Map();
+  l.forEach(x=>{if(!g.has(x.site))g.set(x.site,[]);g.get(x.site).push(x.id)});
+  return [...g].map(([site,ids])=>site+"\n"+ids.join("\n")).join("\n");
+};
+function text(items){
+  if(kwMode==="power")return HP+"\n"+lines(items);
+  if(kwMode==="ofc")return HO+"\n"+lines(items);
+  if(kwMode==="both"){
+    const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
+    const p=items.filter(x=>rP.test(x.subj)),o=items.filter(x=>rO.test(x.subj));
+    return [p.length?HP+"\n"+lines(p):"",o.length?HO+"\n"+lines(o):""].filter(Boolean).join("\n\n");
+  }
+  return "ติดตาม Update\n"+lines(items);
+}
+
+function render(){
+  const list=filtered();
+  const esc=v=>String(v).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  $("count").textContent=rows.length?`พบ ${list.length} Ticket`:"ยังไม่มีข้อมูล";
+  $("list").innerHTML="";
+  ORDER.forEach(rg=>{
+    const items=list.filter(x=>grp(x)===rg);
+    if(!items.length)return;
+    const sec=document.createElement("div");
+    sec.innerHTML=`<div class="sh" style="border-radius:8px;margin:12px 0 6px"><b>${rg} <span class="mu">(${items.length})</span></b><button>Copy ${rg}</button></div>`;
+    sec.querySelector("button").onclick=e=>copy(text(items),e.target);
+    const bySite={};items.forEach(x=>(bySite[x.site]=bySite[x.site]||[]).push(x));
+    Object.keys(bySite).sort().forEach(site=>{
+      const d=document.createElement("div");d.className="site";
+      d.innerHTML=`<div class="sh"><b>${esc(site)} <span class="mu">${esc(bySite[site][0].region)} · ${bySite[site].length}</span></b><button class="sec">Copy</button></div>`+
+        bySite[site].map(x=>`<div class="t"><code>${esc(x.id)}</code><span>${esc(x.subj)}</span></div>`).join("");
+      d.querySelector("button").onclick=e=>copy(text(bySite[site]),e.target);
+      sec.appendChild(d);
+    });
+    $("list").appendChild(sec);
+  });
+}
+
+async function copy(txt,btn){
+  try{await navigator.clipboard.writeText(txt)}
+  catch{const a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}
+  const o=btn.textContent;btn.textContent="คัดลอกแล้ว";btn.classList.add("done");
+  setTimeout(()=>{btn.textContent=o;btn.classList.remove("done")},1200);
+}
+
+$("copyall").onclick=e=>copy(text(filtered()),e.target);
+
+function viaScript(id,gid){
+  return new Promise((res,rej)=>{
+    window.google={visualization:{Query:{setResponse:r=>{
+      if(!r||!r.table)return rej(new Error("ชีตไม่เปิดสิทธิ์ดู"));
+      const cols=r.table.cols.map(c=>c.label||"");
+      const data=r.table.rows.map(x=>x.c.map(c=>c?(c.f!=null?c.f:(c.v==null?"":c.v)):""));
+      res(cols.some(Boolean)?[cols,...data]:data);
+    }}}};
+    const sc=document.createElement("script");
+    sc.src=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json${gid?"&gid="+gid:""}&_=${Date.now()}`;
+    sc.onerror=()=>rej(new Error("โหลดไม่ได้"));
+    document.head.appendChild(sc);
+    setTimeout(()=>rej(new Error("หมดเวลา")),15000);
+  });
+}
+
+$("load").onclick=async()=>{
+  const u=$("url").value.trim();
+  const pm=u.match(/\/d\/e\/([\w-]+)/);
+  if(pm){
+    $("msg").textContent="กำลังโหลด...";
+    try{
+      const g=(u.match(/gid=(\d+)/)||[])[1];
+      const res=await fetch(`https://docs.google.com/spreadsheets/d/e/${pm[1]}/pub?output=csv${g?"&gid="+g:""}&_=${Date.now()}`,{cache:"no-store"});
+      if(!res.ok)throw new Error("HTTP "+res.status);
+      ingest(await res.text());$("msg").textContent="โหลดสำเร็จ";
+    }catch(e){$("msg").textContent="โหลดไม่สำเร็จ: "+e.message+" (ใช้ช่องวางข้อมูลแทนได้)"}
+    return;
+  }
+  const m=u.match(/\/d\/([\w-]+)/),gid=(u.match(/gid=(\d+)/)||[])[1];
+  if(!m){$("msg").textContent="ลิงก์ไม่ถูกต้อง";return}
+  $("msg").textContent="กำลังโหลด...";
+  try{
+    const res=await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv${gid?"&gid="+gid:""}&_=${Date.now()}`,{cache:"no-store"});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    ingest(await res.text());
+    $("msg").textContent="โหลดสำเร็จ";
+  }catch(e1){
+    try{ingest(await viaScript(m[1],gid));$("msg").textContent="โหลดสำเร็จ"}
+    catch(e2){$("msg").textContent="โหลดอัตโนมัติไม่ได้ (ชีตน่าจะยังไม่เปิดแชร์) ให้ใช้ช่องวางข้อมูลด้านล่างแทน"}
+  }
+};
+
+$("usepaste").onclick=()=>{
+  try{ingest($("paste").value,"\t","ข้อมูลที่วาง");$("msg").textContent="ใช้ข้อมูลที่วางแล้ว"}
+  catch(err){$("msg").textContent=err.message}
+};
+
+$("file").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(t=>{try{ingest(t,",","ไฟล์ CSV");$("msg").textContent="โหลดจากไฟล์สำเร็จ"}catch(err){$("msg").textContent=err.message}});
+};
+
+$("sitef").oninput=render;
+document.querySelectorAll("#sevbtns button").forEach(b=>b.onclick=()=>{
+  const k=b.dataset.s;
+  sevSet.has(k)?sevSet.delete(k):sevSet.add(k);
+  b.classList.toggle("on",sevSet.has(k));
+  render();
+});
+document.querySelectorAll("#kwbtns button").forEach(b=>b.onclick=()=>{
+  kwMode=b.dataset.k;
+  document.querySelectorAll("#kwbtns button").forEach(x=>x.classList.toggle("on",x===b));
+  render();
+});
+$("stat").onchange=render;$("rg").onchange=render;$("onlylist").onchange=render;
+$("refresh").onclick=()=>$("load").click();
+setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("auto").checked&&rows.length)$("load").click()});
+$("load").click();
+</script>
+</body>
+</html>
