@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>W&W · Ticket Follow-up</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Calistoga&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* Minimalist Modern tokens (old var names kept so the JS keeps working) */
 :root{--bg:#FAFAFA;--card:#fff;--tx:#0F172A;--mu:#64748B;--bd:#E2E8F0;--muted:#F1F5F9;--ac:#0052FF;--ac2:#4D7CFF;--ok:#16a34a;--err:#ef4444;
@@ -15,7 +15,7 @@
 body{margin:0;min-height:100vh;font:14px/1.6 Inter,"Noto Sans Thai",system-ui,sans-serif;color:var(--tx);background:#0F172A radial-gradient(circle,rgba(255,255,255,.06) 1px,transparent 1px) 0 0/32px 32px fixed;padding:32px 20px 64px;position:relative;overflow-x:hidden}
 body::before{content:"";position:fixed;top:-180px;right:-140px;width:520px;height:520px;border-radius:50%;background:rgba(0,82,255,.28);filter:blur(150px);pointer-events:none}
 .wrap{max-width:1080px;margin:auto;position:relative}
-h1{font:400 clamp(2rem,5vw,3rem)/1.1 Calistoga,Georgia,serif;letter-spacing:-.02em;margin:0 0 16px;color:#fff}
+h1{font:700 clamp(2rem,5vw,3rem)/1.15 Inter,"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:-.02em;margin:0 0 16px;color:#fff}
 .gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:var(--sh-md)}
 label{display:block;font:500 11px "JetBrains Mono",monospace;color:var(--mu);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
@@ -57,6 +57,16 @@ button.done,button.sec.done{background:var(--ok);border-color:var(--ok);color:#f
 #count{color:var(--tx);font-size:18px;font-weight:600;letter-spacing:-.01em}
 #msg{margin-top:8px}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:8px}
+.pvbtn{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:#fff;color:var(--tx);border:1px solid var(--bd);border-radius:12px;box-shadow:none;font:400 14px Inter,"Noto Sans Thai",sans-serif;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pvbtn::after{content:"\25BE";color:var(--mu);flex:none}
+.pvbtn:hover{background:#fff;box-shadow:none;transform:none;filter:none}
+.pvbox{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:100%;width:max-content;max-width:320px;max-height:320px;overflow:auto;padding:6px;border:1px solid var(--bd);border-radius:12px;background:#fff;box-shadow:var(--sh-xl)}
+.pvbox[hidden]{display:none}
+.pvbox label{display:flex;align-items:center;gap:8px;margin:0;padding:6px 8px;border-radius:8px;font:400 13px Inter,"Noto Sans Thai",sans-serif;color:var(--tx);text-transform:none;letter-spacing:0;cursor:pointer;white-space:nowrap}
+.pvbox label:hover{background:var(--muted)}
+.pvbox .mu{font-size:11px;margin-left:auto}
+.pvbox .pvhd{padding:6px 8px;font-size:12px;color:var(--ac);cursor:pointer;border-bottom:1px solid var(--bd);margin-bottom:4px}
+.pvbox .pvsep{height:1px;background:var(--bd);margin:4px 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .cl{font:500 11px "JetBrains Mono",monospace;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px}
 button.chip{min-height:36px;padding:0 6px 0 14px;border-radius:999px;background:#fff;color:var(--tx);border:1px solid var(--bd);box-shadow:none;font-size:13px;display:inline-flex;align-items:center;gap:8px}
@@ -118,11 +128,26 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
     <div><label>Severity</label>
       <select id="sev"><option value="all">ทั้งหมด (NSA + SA)</option><option value="NSA">NSA</option><option value="SA">SA</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
-    <div><label>Province</label><select id="pv"><option value="">ทั้งหมด</option></select></div>
+    <div id="pvwrap" style="position:relative"><label>Province</label><button type="button" class="pvbtn" id="pvbtn">ทั้งหมด</button><div id="pv" class="pvbox" hidden></div></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
   </div>
 </div>
 
+<details class="card" id="tgcard" style="display:none"><!-- ซ่อนไว้ก่อน: ลบ style="display:none" เพื่อแสดงการ์ด Telegram -->
+  <summary class="pill" style="cursor:pointer;list-style:none;margin:0">Telegram · ส่งอัตโนมัติ</summary>
+  <div class="row" style="margin-top:16px">
+    <div style="flex:2"><label>Bot token</label><input type="password" id="tgtok" placeholder="123456:ABC..." autocomplete="off"></div>
+    <div><label>Chat ID</label><input type="text" id="tgchat" placeholder="-100..." autocomplete="off"></div>
+    <div style="flex:0;min-width:auto"><button type="button" class="sec" id="tgtest">ทดสอบส่ง</button></div>
+    <div style="flex:0;min-width:auto"><button type="button" class="sec" id="tgnow">ส่งตามตัวกรองตอนนี้</button></div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <label style="display:inline;margin:0;text-transform:none;letter-spacing:0;font:400 14px Inter,'Noto Sans Thai',sans-serif;color:var(--tx)"><input type="checkbox" id="tgauto"> ส่งอัตโนมัติ (ตามตัวกรองที่เลือกอยู่)</label>
+    <select id="tgmode" style="width:auto;min-width:240px"><option value="hourly">ทุกชั่วโมง (รายการทั้งหมดตามตัวกรอง)</option><option value="new">เมื่อมี Ticket ใหม่</option></select>
+    <span class="mu" id="tgst"></span>
+  </div>
+  <div class="mu" style="margin-top:8px">ต้องเปิดหน้านี้ค้างไว้ · token เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้อยู่ในไฟล์</div>
+</details>
 <div class="card">
   <div class="row bar">
     <div><b id="count">ยังไม่มีข้อมูล</b></div>
@@ -249,15 +274,26 @@ async function ensureSites(){
 const wsv=async p=>{const v=await p;await ensureSites();return v};
 const known=t=>!!(SITEINFO[t]||SMAP[t]);
 function sidOf(x){
-  if(!isSA(x))return "";
   const n=x.site.toUpperCase().trim();
+  /* Online site code (e.g. CBR01022G00, BKK25024G00-EDFA-OLT; the data sometimes has the letter O in place of 0, e.g. GO0): keep the online code, drop any device suffix */
+  const o=n.match(/^[A-Z]{3,4}\d{5}G[0-9O]{2}(?![A-Z0-9])/);
+  if(o)return o[0]===n?"":o[0];
+  /* Site + cabinet/device suffix (CBR8221X_2NB01, BKE7156-L23, BKEC534-AC-01): site code only */
+  const c=n.match(/^([A-Z]{3,4}\d{3,4})(?=[A-Z_\-]|$)/);
+  if(c&&c[1]!==n&&!known(n))return c[1];
+  /* Prefix + site + suffix (U21-BKK1054-1B): pick the site code in the middle */
+  const e=n.match(/(?:^|[-_\s])([A-Z]{3,4}\d{5}G[0-9O]{2}|[A-Z]{3,4}\d{3,4})(?=$|[-_\sA-Z])/);
+  if(e&&e[1]!==n&&!known(n))return e[1];
+  if(!isSA(x))return "";
   if(known(n)||known(n.split("(")[0]))return "";
   const m=n.match(/^[A-Z]{3}\d{4,5}/);if(m&&known(m[0]))return m[0];
   for(const v of [x.ci,x.subj]){const t=(String(v).toUpperCase().match(/[A-Z]{3,4}[0-9A-Z]{3,8}/g)||[]).find(known);if(t)return t}
   return "";
 }
+/* manual province overrides (always BMA): BKK11X2BXAW -> BMAE1, SMP* -> BMAE3 */
+const ovr=x=>{const n=(x.sid||x.site).toUpperCase().trim();return n==="BKK11X2BXAW"?"BMAE1":/^SMP/.test(n)?"BMAE3":""};
 const inList=x=>!!lookup(x)||siteKey(x)!==null;
-const grp=x=>{const i=lookup(x);if(i&&i.grp)return i.grp;const k=siteKey(x);if(!k)return "อื่นๆ";const g=SMAP[k];return g.startsWith("BMA")?"BMA":(g==="Central"||g==="West")?"CW":g};
+const grp=x=>{if(ovr(x))return "BMA";const i=lookup(x);if(i&&i.grp)return i.grp;const k=siteKey(x);if(!k){const r=normR(x.region);return /^BMA/.test(r)?"BMA":/^(CEN|WES)/.test(r)?"CW":/^EAS/.test(r)?"East":/^SOU/.test(r)?"South":"อื่นๆ"}const g=SMAP[k];return g.startsWith("BMA")?"BMA":(g==="Central"||g==="West")?"CW":g};
 
 const $=id=>document.getElementById(id);
 const normNT=v=>{const u=String(v||"").trim().toUpperCase();return /^CX/.test(u)?"CX":u};
@@ -303,11 +339,12 @@ function ingest(text,d,src="Google Sheet"){
   const ix=n=>h.indexOf(n);
   const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY"),iH=ix("TECH_TEAM"),iP=ix("PROVINCE"),iA=ix("AGING"),iC=ix("CREATIONDATE")>=0?ix("CREATIONDATE"):ix("CREATION DATE"),iF=ix("TARGETFINISH")>=0?ix("TARGETFINISH"):ix("TARGET FINISH"),iN=ix("CINAME"),iY=ix("NODE TYPE");
   if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
-  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,nt:iY>=0?normNT(r[iY]):"",bb:/broadband/i.test(r.join(" "))})).filter(x=>x.id);
+  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,nt:iY>=0?normNT(r[iY]):"",bb:!/^SA\d/i.test(iV>=0?String(r[iV]||"").trim():"")&&/broadband/i.test(r.join(" "))})).filter(x=>x.id);
   window.bbN=rows.filter(x=>x.bb).length;rows=rows.filter(x=>!x.bb);
   rows.forEach(x=>{x.sid=sidOf(x);x.prov=provOf(x)});
   setUpd(src,track(src,t));
   render();
+  tgAuto(src);
 }
 
 const KW={
@@ -332,43 +369,55 @@ const pcmp=(a,b)=>pord(a)-pord(b)||a.localeCompare(b);
 /* province aliases: AYA is the same province as AYT */
 const PAL={AYA:"AYT"},pal=p=>PAL[p]||p;
 const provOf=x=>{const i=lookup(x);
+  if(ovr(x))return ovr(x);
   if(grp(x)==="BMA"){const sm=SMAP[siteKey(x)]||"";return (i&&i.reg)||(sm.startsWith("BMA")?sm:"")||normR(x.region)||"BMA (ไม่ระบุ)"}
   const fl=i&&/^[A-Z]{3}$/.test(i.flag||"")?i.flag:"";
   if(fl)return pal(fl);
   const n=(x.sid||x.site).toUpperCase().trim(),t=n.match(/^TOC-([A-Z]{3})/),m=n.match(/^[A-Z]{3}/);
   return pal(t?t[1]:m?m[0]:"อื่นๆ")};
+let pvSet=new Set();
 function fillProv(){
-  const el=$("pv"),cur=el.value,cnt=new Map();
+  const el=$("pv"),cnt=new Map(),top=el.scrollTop;
   filtered(true).forEach(x=>cnt.set(x.prov,(cnt.get(x.prov)||0)+1));
+  [...pvSet].forEach(p=>{if(!cnt.has(p))pvSet.delete(p)});
   const keys=[...cnt.keys()],b=keys.filter(p=>p.startsWith("BMA")).sort(pcmp),o=keys.filter(p=>!p.startsWith("BMA")).sort((a,c)=>a.localeCompare(c));
-  const opt=p=>`<option value="${esc(p)}">${esc(p)} (${cnt.get(p)})</option>`;
-  el.innerHTML='<option value="">ทั้งหมด</option>'+(b.length?`<optgroup label="BMA">${b.map(opt).join("")}</optgroup>`:"")+(o.length?`<optgroup label="Site code">${o.map(opt).join("")}</optgroup>`:"");
-  el.value=cnt.has(cur)?cur:"";
+  const box=p=>`<label><input type="checkbox" value="${esc(p)}"${pvSet.has(p)?" checked":""}> ${esc(p)} <span class="mu">${cnt.get(p)}</span></label>`;
+  el.innerHTML='<div class="pvhd" data-clr="1">ล้างที่เลือก</div>'+(b.map(box).join("")+(b.length&&o.length?'<div class="pvsep"></div>':"")+o.map(box).join("")||'<span class="mu">ไม่มี Province</span>');
+  const sel=[...pvSet].sort(pcmp);
+  $("pvbtn").textContent=!sel.length?"ทั้งหมด":sel.length<=3?sel.join(", "):`เลือก ${sel.length} รายการ`;
+  el.scrollTop=top;
 }
 function filtered(sk){
-  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,pv=$("pv").value,ol=$("onlylist").checked;
-  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||!pv||x.prov===pv));
+  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=$("onlylist").checked;
+  return rows.filter(x=>(!ol||inList(x)||isSA(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
+const HALL="รบกวนขอติดตาม Update ความคืบหน้าของ Ticket";
 const HP="ติดตามขอ Update กลุ่มที่มีความเสี่ยงเรื่องระบบไฟฟ้า"+SUF;
 const HO="ติดตามขอ Update กลุ่มที่มีความเสี่ยง Simplex กระทบการเกิด Ticket SA"+SUF;
 const isSA=x=>/^SA\d/i.test(x.sev);
 const fmtAge=d=>{const n=parseFloat(d);if(!isFinite(n))return"";const h=Math.round(n*24);return h<24?h+"h":Math.floor(h/24)+"d "+(h%24)+"h"};
-const siteLabel=x=>[x.nt||(lookup(x)||{}).nt||"",x.sid||x.site].filter(Boolean).join(" ");
-const tline=x=>siteLabel(x);
+const siteLabel=x=>x.sid||x.site;
+const slaTxt=x=>{const z=slaOf(x);return z?(z.over?"`"+z.txt+"`":"*"+z.txt+"*"):""};
+const holderTxt=x=>x.holder==="ยังไม่มีผู้ถือ"?"ไม่มีคนถือ":x.holder;
+const tline=x=>{
+  const z=slaTxt(x),h=holderTxt(x);
+  return (x.sev?x.sev+" , ":"")+siteLabel(x)+(z?" "+z:"")+" , "+x.id+(h?" "+h:"");
+};
 function provBlock(it){
   const g=new Map();it.forEach(x=>{if(!g.has(x.prov))g.set(x.prov,[]);g.get(x.prov).push(x)});
-  return [...g].sort(([p],[q])=>pcmp(p,q)).map(([p,l])=>{
+  return [...g].sort(([p,a],[q,b])=>overN(b)-overN(a)||pcmp(p,q)).map(([p,l])=>{
     const seen=new Set();
-    return p+"\n"+l.sort(cmpSla).filter(x=>!seen.has(x.id)&&seen.add(x.id)).map(x=>tline(x)+"\n"+x.id).join("\n");
-  }).join("\n");
+    return p+"\n"+l.sort(cmpSla).filter(x=>!seen.has(x.id)&&seen.add(x.id)).map((x,i)=>(i+1)+". "+tline(x)).join("\n");
+  }).join("\n\n");
 }
-const regionBlock=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.length?rg+"\n"+provBlock(it):""}).filter(Boolean).join("\n\n");
+const overN=l=>l.filter(x=>slaRank(x)===0).length;
+const regionBlock=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.length?rg+"\n\n"+provBlock(it):""}).filter(Boolean).join("\n\n");
 function text(items){
   const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
   const ot=items.filter(x=>!isSA(x)),sa=items.filter(isSA);
-  const secs=kwMode==="power"?[[HP,ot],["ติดตาม Update",sa]]:kwMode==="ofc"?[[HO,ot],["ติดตาม Update",sa]]:
+  const secs=kwMode==="all"?[[HALL,items]]:kwMode==="power"?[[HP,items]]:kwMode==="ofc"?[[HO,items]]:
     [[HP,ot.filter(x=>rP.test(x.subj))],[HO,ot.filter(x=>rO.test(x.subj))],["ติดตาม Update",items.filter(x=>isSA(x)||(!rP.test(x.subj)&&!rO.test(x.subj)))]];
   return secs.filter(([,l])=>l.length).map(([h,l])=>h+"\n\n"+regionBlock(l)).join("\n\n");
 }
@@ -385,10 +434,10 @@ function render(){
     sec.innerHTML=`<div class="sh rh"><b>${rg} <span class="mu">(${items.length})</span></b><button>Copy ${rg}</button></div>`;
     sec.querySelector("button").onclick=e=>copy(text(items),e.target);
     const byP={};items.forEach(x=>(byP[x.prov]=byP[x.prov]||[]).push(x));
-    Object.keys(byP).sort(pcmp).forEach(pv=>{
+    Object.keys(byP).sort((a,b)=>overN(byP[b])-overN(byP[a])||pcmp(a,b)).forEach(pv=>{
       const l=byP[pv].sort(cmpSla);
       const d=document.createElement("div");d.className="site";
-      d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}</span></b><button class="sec">Copy</button></div>`+
+      d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}${overN(l)?` · Over ${overN(l)}`:""}</span></b><button class="sec">Copy</button></div>`+
         l.map(x=>{const z=slaOf(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
       d.querySelector("button").onclick=e=>copy(text(l),e.target);
       sec.appendChild(d);
@@ -403,6 +452,77 @@ async function copy(txt,btn){
   const o=btn.textContent;btn.textContent="คัดลอกแล้ว";btn.classList.add("done");
   setTimeout(()=>{btn.textContent=o;btn.classList.remove("done")},1200);
 }
+
+/* ---- Telegram auto-send: runs inside this page (tab must stay open) ---- */
+const TGK="ww_tg",TGS="ww_tg_sent",TGF="ww_tg_fs",TGH="ww_tg_hr";
+let tgPending=false,tgTried="";
+const tgHourKey=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()+"-"+d.getHours()};
+/* every 30 s: when the hour changes, refresh the sheet then send the filtered list (flag consumed in tgAuto) */
+function tgTick(){
+  const c=tgGet();if(!c.auto||(c.mode||"hourly")!=="hourly")return;
+  const k=tgHourKey();if(k===localStorage.getItem(TGH)||k===tgTried)return;
+  tgTried=k;tgPending=true;$("load").click();
+}
+setInterval(tgTick,30000);
+const tgGet=()=>{try{return JSON.parse(localStorage.getItem(TGK)||"{}")}catch(e){return{}}};
+const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify({token:$("tgtok").value.trim(),chat:$("tgchat").value.trim(),auto:$("tgauto").checked,mode:$("tgmode").value}))}catch(e){}};
+const tgNow=()=>new Date().toLocaleTimeString("th-TH",{hour12:false});
+const tgSt=(m,bad)=>{$("tgst").textContent=m;$("tgst").style.color=bad?"var(--err)":""};
+function tgSplit(txt,lim=3500){
+  const out=[];let cur="";
+  const push=p=>{if(cur&&(cur+"\n\n"+p).length>lim){out.push(cur);cur=p}else cur=cur?cur+"\n\n"+p:p};
+  txt.split("\n\n").forEach(piece=>{
+    if(piece.length<=lim){push(piece);return}
+    const L=piece.split("\n"),head=L[0];let buf="";
+    L.forEach(l=>{if(buf&&(buf+"\n"+l).length>lim){push(buf);buf=head+" (ต่อ)\n"+l}else buf=buf?buf+"\n"+l:l});
+    if(buf)push(buf);
+  });
+  if(cur)out.push(cur);return out;
+}
+async function tgSendRaw(t){
+  const c=tgGet();if(!c.token||!c.chat)throw new Error("ยังไม่ได้ใส่ Bot token / Chat ID");
+  const html=t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/`([^`\n]+)`/g,"<code>$1</code>").replace(/\*([^*\n]+)\*/g,"<b>$1</b>");
+  const r=await fetch(`https://api.telegram.org/bot${c.token}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:c.chat,text:html,parse_mode:"HTML",disable_web_page_preview:true})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok)throw new Error(j.description||("HTTP "+r.status));
+}
+const tgSend=async t=>{for(const p of tgSplit(t))await tgSendRaw(p)};
+const tgFs=()=>JSON.stringify([kwMode,[...sevSet].sort(),$("rg").value,[...pvSet].sort(),$("sitef").value.trim(),$("onlylist").checked]);
+async function tgAuto(src){
+  const cfg=tgGet();if(!cfg.auto||src!=="Google Sheet")return;
+  if((cfg.mode||"hourly")==="hourly"){
+    if(!tgPending)return;
+    tgPending=false;const f=filtered();
+    try{
+      if(f.length){await tgSend(text(f));tgSt(`ส่งรายงานรายชั่วโมง ${f.length} Ticket ${tgNow()}`)}
+      else tgSt(`ถึงเวลาส่ง ${tgNow()} แต่ไม่มี Ticket ตามตัวกรอง`);
+      try{localStorage.setItem(TGH,tgHourKey())}catch(e){}
+    }catch(e){tgPending=true;tgSt("ส่งไม่สำเร็จ (จะลองใหม่รอบถัดไป): "+e.message,true)}
+    return;
+  }
+  const f=filtered(),present=new Set(f.map(x=>x.id)),fs=tgFs(),same=localStorage.getItem(TGF)===fs;
+  let sent=[];try{sent=JSON.parse(localStorage.getItem(TGS)||"[]")}catch(e){}
+  /* filters changed (or first run): remember what is visible now, send nothing */
+  const keep=new Set(same?sent.filter(i=>present.has(i)):[...present]);
+  const fresh=same?f.filter(x=>!keep.has(x.id)):[];
+  try{
+    if(fresh.length){await tgSend(text(fresh));fresh.forEach(x=>keep.add(x.id));tgSt(`ส่ง ${fresh.length} Ticket ใหม่ ${tgNow()}`)}
+    else tgSt(same?`ตรวจแล้ว ไม่มี Ticket ใหม่ ${tgNow()}`:"เปิดส่งอัตโนมัติแล้ว (จำ Ticket ที่เห็นตอนนี้ ไม่ส่งซ้ำ)");
+  }catch(e){tgSt("ส่งไม่สำเร็จ: "+e.message,true)}
+  try{localStorage.setItem(TGS,JSON.stringify([...keep]));localStorage.setItem(TGF,fs)}catch(e){}
+}
+(()=>{const c=tgGet();$("tgtok").value=c.token||"";$("tgchat").value=c.chat||"";$("tgauto").checked=!!c.auto;$("tgmode").value=c.mode||"hourly"})();
+$("tgtok").onchange=$("tgchat").onchange=tgSave;
+function tgArm(){
+  tgSave();tgPending=false;tgTried="";
+  if(!$("tgauto").checked){tgSt("ปิดส่งอัตโนมัติแล้ว");return}
+  if($("tgmode").value==="hourly"){try{localStorage.setItem(TGH,tgHourKey())}catch(e){}tgSt(`เปิดแล้ว: จะส่งทุกต้นชั่วโมง (รอบถัดไป ${String((new Date().getHours()+1)%24).padStart(2,"0")}:00)`)}
+  else{try{localStorage.removeItem(TGF)}catch(e){}tgAuto("Google Sheet")}
+}
+$("tgauto").onchange=tgArm;$("tgmode").onchange=tgArm;
+if($("tgauto").checked&&$("tgmode").value==="hourly"){try{localStorage.setItem(TGH,tgHourKey())}catch(e){}}   /* page just opened: do not send an immediate catch-up */
+$("tgtest").onclick=async()=>{tgSave();try{await tgSendRaw("✅ ทดสอบส่งจาก W&W Ticket Follow-up");tgSt("ส่งทดสอบสำเร็จ "+tgNow())}catch(e){tgSt("ส่งไม่สำเร็จ: "+e.message,true)}};
+$("tgnow").onclick=async()=>{tgSave();const f=filtered();if(!f.length){tgSt("ไม่มี Ticket ตามตัวกรอง",true);return}try{await tgSend(text(f));tgSt(`ส่ง ${f.length} Ticket แล้ว ${tgNow()}`)}catch(e){tgSt("ส่งไม่สำเร็จ: "+e.message,true)}};
 
 $("copyall").onclick=e=>copy(text(filtered(),true),e.target);
 
@@ -464,7 +584,12 @@ $("file").onchange=e=>{
 $("sitef").oninput=render;
 $("sev").onchange=e=>{const v=e.target.value,N=["NSA1","NSA2","NSA3"],S=["SA1","SA2","SA3","SA4"];sevSet=new Set(v==="all"?[...N,...S]:v==="NSA"?N:v==="SA"?S:[v]);render()};
 $("kw").onchange=e=>{kwMode=e.target.value;render()};
-$("rg").onchange=()=>{$("pv").value="";render()};$("pv").onchange=render;$("onlylist").onchange=render;
+$("rg").onchange=()=>{pvSet.clear();render()};
+$("pv").onclick=e=>{if(e.target.dataset&&e.target.dataset.clr){pvSet.clear();render()}};
+$("pv").onchange=e=>{const c=e.target;if(c.type!=="checkbox")return;c.checked?pvSet.add(c.value):pvSet.delete(c.value);render()};
+$("pvbtn").onclick=()=>{$("pv").hidden=!$("pv").hidden};
+document.addEventListener("click",e=>{if(!e.composedPath().some(n=>n.id==="pvwrap"))$("pv").hidden=true});
+$("onlylist").onchange=render;
 $("refresh").onclick=()=>$("load").click();
 $("sync").onclick=()=>$("load").click();
 setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
