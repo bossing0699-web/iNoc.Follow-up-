@@ -339,8 +339,8 @@ function ingest(text,d,src="Google Sheet"){
   const ix=n=>h.indexOf(n);
   const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY"),iH=ix("TECH_TEAM"),iP=ix("PROVINCE"),iA=ix("AGING"),iC=ix("CREATIONDATE")>=0?ix("CREATIONDATE"):ix("CREATION DATE"),iF=ix("TARGETFINISH")>=0?ix("TARGETFINISH"):ix("TARGET FINISH"),iN=ix("CINAME"),iY=ix("NODE TYPE");
   if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
-  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,nt:iY>=0?normNT(r[iY]):"",bb:!/^SA\d/i.test(iV>=0?String(r[iV]||"").trim():"")&&/broadband/i.test(r.join(" "))})).filter(x=>x.id);
-  window.bbN=rows.filter(x=>x.bb).length;rows=rows.filter(x=>!x.bb);
+  rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,nt:iY>=0?normNT(r[iY]):""})).filter(x=>x.id);
+  window.bbN=0;   /* Broadband is no longer excluded */
   rows.forEach(x=>{x.sid=sidOf(x);x.prov=provOf(x)});
   setUpd(src,track(src,t));
   render();
@@ -368,13 +368,25 @@ const pord=p=>{const i=BORD.indexOf(p);return i<0?99:i};
 const pcmp=(a,b)=>pord(a)-pord(b)||a.localeCompare(b);
 /* province aliases: AYA is the same province as AYT */
 const PAL={AYA:"AYT"},pal=p=>PAL[p]||p;
+/* province fallback: when the site name gives nothing ("อื่นๆ"), re-check the SUBJECT for a site code (e.g. KCN1034 -> KCN) */
+const subjProv=x=>{
+  const sj=String(x.subj||"").toUpperCase();
+  const pc=new Set(Object.values(SITEINFO).map(i=>i.flag).filter(f=>/^[A-Z]{3}$/.test(f||"")));
+  for(const mm of sj.matchAll(/(?:^|[^A-Z0-9])([A-Z]{3})(\d{4,5})(?![0-9])/g)){
+    const inf=SITEINFO[mm[1]+mm[2]];
+    if(inf&&/^[A-Z]{3}$/.test(inf.flag||""))return inf.flag;
+    if(!pc.size||pc.has(mm[1]))return mm[1];
+  }
+  return "";
+};
 const provOf=x=>{const i=lookup(x);
   if(ovr(x))return ovr(x);
   if(grp(x)==="BMA"){const sm=SMAP[siteKey(x)]||"";return (i&&i.reg)||(sm.startsWith("BMA")?sm:"")||normR(x.region)||"BMA (ไม่ระบุ)"}
   const fl=i&&/^[A-Z]{3}$/.test(i.flag||"")?i.flag:"";
   if(fl)return pal(fl);
   const n=(x.sid||x.site).toUpperCase().trim(),t=n.match(/^TOC-([A-Z]{3})/),m=n.match(/^[A-Z]{3}/);
-  return pal(t?t[1]:m?m[0]:"อื่นๆ")};
+  if(t)return pal(t[1]);if(m)return pal(m[0]);
+  return pal(subjProv(x)||"อื่นๆ")};
 let pvSet=new Set();
 function fillProv(){
   const el=$("pv"),cnt=new Map(),top=el.scrollTop;
