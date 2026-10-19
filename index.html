@@ -372,10 +372,14 @@ function ingest(text,d,src="Google Sheet"){
 
 const KW={
   power:"Generator|(?<![a-z])Mains?(?:fail|\\s*power|\\b)|urgent",
-  ofc:"OFC"
+  /* OFC fault descriptions often omit the literal acronym. Include common
+     fiber faults and site-to-site link descriptions used in NSA subjects. */
+  ofc:"OFC|FIB(?:ER|RE)\\s*(?:CUT|BREAK|FAULT|DOWN)|CRC(?:\\s+ERROR)?|POWER\\s*LOW|LOW\\s+POWER|(?:[A-Z]{3,4}\\d{3,8}[A-Z0-9_-]*\\s*(?:TO|[-–—/]|\\bTO\\b)\\s*[A-Z]{3,4}\\d{3,8}[A-Z0-9_-]*)"
 };
 let kwMode="all";
 let sevSet=new Set(["NSA1","NSA2","NSA3","SA1","SA2","SA3","SA4"]);
+const isSA=x=>/^SA\\d/i.test(x.sev);
+const ofcMatch=x=>new RegExp(KW.ofc,"i").test(x.subj||"");
 function buildRegex(){
   if(kwMode==="all")return null;
   const src=kwMode==="both"?KW.power+"|"+KW.ofc:KW[kwMode];
@@ -424,14 +428,13 @@ function fillProv(){
 }
 function filtered(sk){
   const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=$("onlylist").checked;
-  return rows.filter(x=>(!ol||inList(x))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
+  return rows.filter(x=>(!ol||inList(x)||(kwMode==="ofc"&&!isSA(x)&&ofcMatch(x)))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
 const HALL="รบกวนขอติดตาม Update ความคืบหน้าของ Ticket";
 const HP="ติดตามขอ Update กลุ่มที่มีความเสี่ยงเรื่องระบบไฟฟ้า"+SUF;
 const HO="ติดตามขอ Update กลุ่มที่มีความเสี่ยง Simplex กระทบการเกิด Ticket SA"+SUF;
-const isSA=x=>/^SA\d/i.test(x.sev);
 const fmtAge=d=>{const n=parseFloat(d);if(!isFinite(n))return"";const h=Math.round(n*24);return h<24?h+"h":Math.floor(h/24)+"d "+(h%24)+"h"};
 const siteLabel=x=>{const id=String(x.sid||x.site).split("|")[0].trim(),i=lookup(x),t=String(x.nt||(i&&i.nt)||"").toUpperCase();return (t&&!id.toUpperCase().startsWith(t+"-")?t+" ":"")+id};
 const slaTxt=x=>{const z=slaOf(x);return z?(z.over?"`"+z.txt+"`":"*"+z.txt+"*"):""};
