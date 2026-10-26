@@ -89,6 +89,10 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 .reg .site .sh{background:linear-gradient(135deg,rgba(var(--rcb),.07),transparent)}
 .reg .t code{color:var(--rc)}
 .reg .who{color:var(--rc);background:rgba(var(--rcb),.08)}
+.tabs{display:flex;gap:8px;margin:0 0 16px;padding:5px;width:max-content;max-width:100%;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.06)}
+.tabs button{min-height:40px;padding:0 22px;border-radius:10px;background:transparent;color:#CBD5E1;box-shadow:none;font-weight:600;filter:none}
+.tabs button:hover{background:rgba(255,255,255,.08);transform:none;box-shadow:none;filter:none}
+.tabs button.on{background:var(--grad);color:#fff;box-shadow:var(--sh-ac)}
 @keyframes pl{50%{transform:scale(1.3);opacity:.7}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:600px){.t{flex-wrap:wrap;gap:4px}.t span{white-space:normal}}
@@ -97,6 +101,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 <body>
 <div class="wrap">
 <h1>W&W · Ticket <span class="gt">Follow-up</span></h1>
+<div class="tabs" id="tabs"><button type="button" data-tab="home">Home</button><button type="button" data-tab="site" class="on">Site Priority</button></div>
 <div id="sync" class="sync" title="คลิกเพื่อ Sync ตอนนี้"><i></i><span><b>ยังไม่ได้ Sync</b></span></div>
 
 <div class="card" style="display:none">
@@ -255,13 +260,13 @@ TOC-SRT TOC-SKA`
 };
 const SMAP={};
 for(const k in SG)SG[k].split(/\s+/).forEach(x=>{if(x){SMAP[x]=k;SMAP[x.split("(")[0]]=SMAP[x.split("(")[0]]||k}});
-const siteKey=x=>{const n=(x.sid||x.site).toUpperCase().trim();return SMAP[n]?n:(SMAP[n.split("(")[0]]?n.split("(")[0]:null)};
+const siteKey=x=>{const n=(eid(x)).toUpperCase().trim();return SMAP[n]?n:(SMAP[n.split("(")[0]]?n.split("(")[0]:null)};
 /* Site table from Google Sheet tab "Site" (columns: Site ID, Region, Group Region, Flag) */
 const SITE_GID="957693926";
 let SITEINFO={};
 const normG=v=>{const u=String(v||"").trim().toUpperCase();return u==="BMA"?"BMA":/^(CW|CENTRAL|WEST|CENTRAL[\s\/+-]*WEST|C\+W)$/.test(u)?"CW":u==="EAST"?"East":u==="SOUTH"?"South":""};
 const normR=v=>String(v||"").replace(/[\s-]+/g,"").toUpperCase();
-const lookup=x=>{const n=(x.sid||x.site).toUpperCase().trim();return SITEINFO[n]||SITEINFO[n.split("(")[0]]||null};
+const lookup=x=>{const n=(eid(x)).toUpperCase().trim();return SITEINFO[n]||SITEINFO[n.split("(")[0]]||null};
 function ingestSites(tb){
   const t=tb.filter(r=>r.some(c=>String(c).trim()));if(!t.length)return false;
   const h=t[0].map(c=>String(c).trim().toUpperCase()),ix=(...n)=>{for(const k of n){const i=h.indexOf(k);if(i>=0)return i}return -1};
@@ -300,11 +305,36 @@ function sidOf(x){
   return "";
 }
 /* manual province overrides (always BMA): BKK11X2BXAW -> BMAE1, SMP* -> BMAE3 */
-const ovr=x=>{const n=(x.sid||x.site).toUpperCase().trim();return n==="BKK11X2BXAW"?"BMAE1":/^SMP/.test(n)?"BMAE3":""};
+const ovr=x=>{const n=(eid(x)).toUpperCase().trim();return n==="BKK11X2BXAW"?"BMAE1":/^SMP/.test(n)?"BMAE3":""};
 const inList=x=>!!lookup(x)||siteKey(x)!==null;
 const grp=x=>{if(ovr(x))return "BMA";const i=lookup(x);if(i&&i.grp)return i.grp;const k=siteKey(x);if(!k){const r=normR(x.region);return /^BMA/.test(r)?"BMA":/^(CEN|WES)/.test(r)?"CW":/^EAS/.test(r)?"East":/^SOU/.test(r)?"South":"อื่นๆ"}const g=SMAP[k];return g.startsWith("BMA")?"BMA":(g==="Central"||g==="West")?"CW":g};
 
 const $=id=>document.getElementById(id);
+/* ---- Home tab: stricter Site-code detection (site name -> CI name -> subject) ---- */
+const eid=x=>(tab==="home"&&x.hsid)||x.sid||x.site;
+let PREF=new Set();   /* known 3-4 letter province/site prefixes, built from the site lists */
+function buildPref(){const st=new Set();const add=k=>{const m=String(k).match(/^[A-Z]{3,4}(?=\d)/);if(m)st.add(m[0])};Object.keys(SMAP).forEach(add);Object.keys(SITEINFO).forEach(add);PREF=st}
+const isK=t=>!!t&&(known(t)||known(t.split("(")[0]));
+const SCODE=/(?<![A-Z0-9])([A-Z]{3,4}\d{3,5}(?:G[0-9O]{2})?)(?![0-9])/g;
+function homeSid(x){
+  const base=String(x.sid||x.site).toUpperCase().trim();
+  if(isK(base))return "";                              /* site name is already a listed site */
+  const srcs=[base,String(x.site||"").toUpperCase(),String(x.ci||"").toUpperCase(),String(x.subj||"").toUpperCase()];
+  const cands=[];                                       /* [code, fromBase] in priority order */
+  srcs.forEach((u,i)=>{
+    u.split(/[^A-Z0-9()]+/).forEach(t=>{if(t)cands.push([t,i<2])});
+    (u.match(/TOC-[A-Z]{3}/g)||[]).forEach(t=>cands.push([t,i<2]));
+    for(const m of u.matchAll(SCODE)){
+      const c=m[1],nx=u[m.index+c.length],nn=u[m.index+c.length+1];
+      if(nx&&/[A-Z]/.test(nx)&&(!nn||!/[A-Z0-9]/.test(nn)))cands.push([c+nx,i<2]);   /* PKT0009T, BKK060N ... */
+      cands.push([c,i<2]);
+    }
+  });
+  const k=cands.find(([c])=>isK(c));                    /* 1) any listed site wins */
+  if(k)return k[0];
+  const g=cands.find(([c,b])=>{const m=c.match(/^([A-Z]{3,4})\d{3,5}(?:G[0-9O]{2})?$/);return m&&(b||PREF.has(m[1]))});   /* 2) well-formed code */
+  return g?g[0]:"";
+}
 const normNT=v=>{const u=String(v||"").trim().toUpperCase();return /^CX/.test(u)?"CX":u};
 const esc=v=>String(v).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
@@ -364,7 +394,7 @@ function ingest(text,d,src="Google Sheet"){
   rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),bb:/broadband/i.test((iK>=0?r[iK]:"")+" "+(iG2>=0?r[iG2]:"")),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,tRaw:iF>=0?String(r[iF]||"").trim():"",ins:iI>=0?parseDT(r[iI]):null,od:iO>=0?parseFloat(r[iO]):NaN,nt:iY>=0?normNT(r[iY]):""})).filter(x=>x.id);
   window.ALLROWS=rows.slice();window.RAWT=t;   /* for "ตรวจ Ticket" */
   window.bbN=0;if(HIDE_BB){window.bbN=rows.filter(x=>x.bb).length;rows=rows.filter(x=>!x.bb)}   /* Broadband hidden */
-  rows.forEach(x=>{x.sid=sidOf(x);x.target=fixTarget(x);x.prov=provOf(x)});
+  buildPref();rows.forEach(x=>{x.sid=sidOf(x);x.hsid=homeSid(x);x.target=fixTarget(x);x.prov=provOf(x)});
   setUpd(src,track(src,t));
   render();
   tgAuto(src);
@@ -378,6 +408,11 @@ const KW={
 };
 let kwMode="all";
 let sevSet=new Set(["NSA1","NSA2","NSA3","SA1","SA2","SA3","SA4"]);
+/* Tabs: "site" = Site Priority (original behaviour) | "home" = fixed severities SA1/SA2/NSA1, all sites (ignores the Site-list filter) */
+const HOME_SEV=new Set(["SA1","SA2","NSA1"]);
+let tab="site";try{if(localStorage.getItem("ww_tab")==="home")tab="home"}catch(e){}
+const effSev=()=>tab==="home"?HOME_SEV:sevSet;
+const effOL=()=>tab==="home"?false:$("onlylist").checked;
 const isSA=x=>/^SA\\d/i.test(x.sev);
 const ofcMatch=x=>new RegExp(KW.ofc,"i").test(x.subj||"");
 function buildRegex(){
@@ -411,7 +446,7 @@ const provOf=x=>{const i=lookup(x);
   if(grp(x)==="BMA"){const sm=SMAP[siteKey(x)]||"";return (i&&i.reg)||(sm.startsWith("BMA")?sm:"")||normR(x.region)||"BMA (ไม่ระบุ)"}
   const fl=i&&/^[A-Z]{3}$/.test(i.flag||"")?i.flag:"";
   if(fl)return pal(fl);
-  const n=(x.sid||x.site).toUpperCase().trim(),t=n.match(/^TOC-([A-Z]{3})/),m=n.match(/^[A-Z]{3}/);
+  const n=(eid(x)).toUpperCase().trim(),t=n.match(/^TOC-([A-Z]{3})/),m=n.match(/^[A-Z]{3}/);
   if(t)return pal(t[1]);if(m)return pal(m[0]);
   return pal(subjProv(x)||"อื่นๆ")};
 let pvSet=new Set();
@@ -427,8 +462,8 @@ function fillProv(){
   el.scrollTop=top;
 }
 function filtered(sk){
-  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=$("onlylist").checked;
-  return rows.filter(x=>(!ol||inList(x)||(kwMode==="ofc"&&!isSA(x)&&ofcMatch(x)))&&(sevSet.size===0||sevSet.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
+  const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=effOL(),SV=effSev();
+  return rows.filter(x=>(!ol||inList(x)||(kwMode==="ofc"&&!isSA(x)&&ofcMatch(x)))&&(SV.size===0||SV.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
@@ -436,7 +471,7 @@ const HALL="รบกวนขอติดตาม Update ความคืบ
 const HP="ติดตามขอ Update กลุ่มที่มีความเสี่ยงเรื่องระบบไฟฟ้า"+SUF;
 const HO="ติดตามขอ Update กลุ่มที่มีความเสี่ยง Simplex กระทบการเกิด Ticket SA"+SUF;
 const fmtAge=d=>{const n=parseFloat(d);if(!isFinite(n))return"";const h=Math.round(n*24);return h<24?h+"h":Math.floor(h/24)+"d "+(h%24)+"h"};
-const siteLabel=x=>{const id=String(x.sid||x.site).split("|")[0].trim(),i=lookup(x),t=String(x.nt||(i&&i.nt)||"").toUpperCase();return (t&&!id.toUpperCase().startsWith(t+"-")?t+" ":"")+id};
+const siteLabel=x=>{const id=String(eid(x)).split("|")[0].trim(),i=lookup(x),t=String(x.nt||(i&&i.nt)||"").toUpperCase();return (t&&!id.toUpperCase().startsWith(t+"-")?t+" ":"")+id};
 const slaTxt=x=>{const z=slaOf(x);return z?(z.over?"`"+z.txt+"`":"*"+z.txt+"*"):""};
 const holderTxt=x=>x.holder==="ยังไม่มีผู้ถือ"?"ไม่มีคนถือ":x.holder;
 const tline=x=>{
@@ -516,10 +551,10 @@ function explainTicket(q){
   return hits.slice(0,4).flatMap(x=>{
     const why=[];
     if(HIDE_BB&&x.bb)why.push("ถูกตัดเป็น Broadband (HIDE_BB=true)");
-    if($("onlylist").checked&&!inList(x))why.push(`Site "${siteLabel(x)}" ไม่อยู่ในรายการ (ติ๊ก "เฉพาะ Site ในรายการ" อยู่)`);
-    if(sevSet.size&&!sevSet.has(x.sev))why.push(`Severity ${x.sev||"(ว่าง)"} ไม่อยู่ในที่เลือก (${[...sevSet].join("/")})`);
+    if(effOL()&&!inList(x))why.push(`Site "${siteLabel(x)}" ไม่อยู่ในรายการ (ติ๊ก "เฉพาะ Site ในรายการ" อยู่)`);
+    if(effSev().size&&!effSev().has(x.sev))why.push(`Severity ${x.sev||"(ว่าง)"} ไม่อยู่ในที่เลือก (${[...effSev()].join("/")}) [แท็บ ${tab==="home"?"Home":"Site Priority"}]`);
     if(re&&!isSA(x)&&!re.test(x.subj))why.push("Subject ไม่มีคำตาม Escalate type ที่เลือก");
-    if(sf&&!(x.site+" "+(x.sid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))why.push(`ไม่ตรงช่องค้นหา Site "${sf}"`);
+    if(sf&&!(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))why.push(`ไม่ตรงช่องค้นหา Site "${sf}"`);
     if(rg&&grp(x)!==rg)why.push(`Region ของ Ticket คือ ${grp(x)} แต่เลือก ${rg}`);
     if(pvSet.size&&!pvSet.has(x.prov))why.push(`Province ของ Ticket คือ ${x.prov} ไม่อยู่ในที่เลือก`);
     const info=`${x.id} · ${x.sev||"-"} · Site ${siteLabel(x)} · ${grp(x)} / ${x.prov} · ${x.holder}`;
@@ -563,7 +598,7 @@ async function tgSendRaw(t){
   if(!r.ok||!j.ok)throw new Error(j.description||("HTTP "+r.status));
 }
 const tgSend=async t=>{for(const p of tgSplit(t))await tgSendRaw(p)};
-const tgFs=()=>JSON.stringify([kwMode,[...sevSet].sort(),$("rg").value,[...pvSet].sort(),$("sitef").value.trim(),$("onlylist").checked]);
+const tgFs=()=>JSON.stringify([tab,kwMode,[...sevSet].sort(),$("rg").value,[...pvSet].sort(),$("sitef").value.trim(),$("onlylist").checked]);
 async function tgAuto(src){
   const cfg=tgGet();if(!cfg.auto||src!=="Google Sheet")return;
   if((cfg.mode||"hourly")==="hourly"){
@@ -670,6 +705,15 @@ $("refresh").onclick=()=>$("load").click();
 $("sync").onclick=()=>$("load").click();
 setInterval(()=>{if($("auto").checked&&!document.hidden)$("load").click()},300000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("auto").checked&&rows.length)$("load").click()});
+function applyTab(){
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  const home=tab==="home";
+  $("sev").closest(".row>div").style.display=home?"none":"";
+  $("onlylist").closest(".row>div").style.display=home?"none":"";
+  try{localStorage.setItem("ww_tab",tab)}catch(e){}
+}
+$("tabs").onclick=e=>{const b=e.target.closest("button[data-tab]");if(!b||b.dataset.tab===tab)return;tab=b.dataset.tab;pvSet.clear();rows.forEach(x=>{x.prov=provOf(x)});applyTab();render();if($("chkq").value.trim())chkRun()};
+applyTab();
 $("load").click();
 </script>
 </body>
