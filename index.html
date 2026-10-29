@@ -82,6 +82,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 .t{flex-wrap:wrap;align-items:center}
 .t .sj{flex:1 1 260px;color:var(--mu);white-space:normal;overflow:visible}
 .t .sv{font:600 11px "JetBrains Mono",monospace;padding:1px 8px;border-radius:6px;background:var(--muted);color:var(--tx)}
+.t .tech-status{font:500 11px Inter,"Noto Sans Thai",sans-serif;padding:2px 8px;border-radius:6px;background:#EFF6FF;color:#1D4ED8;white-space:nowrap}
 .t .ss{font:600 12.5px "JetBrains Mono",monospace;color:var(--tx)}
 .st{font:600 11.5px "JetBrains Mono",monospace;font-style:normal;border-radius:6px;padding:1px 8px;white-space:nowrap}
 .st.ok{color:#15803d;background:rgba(22,163,74,.1)}
@@ -106,7 +107,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 <body>
 <div class="wrap">
 <h1>W&W · Ticket <span class="gt">Follow-up</span></h1>
-<div class="tabs" id="tabs"><button type="button" data-tab="home">Home</button><button type="button" data-tab="site" class="on">Site Priority</button></div>
+<div class="tabs" id="tabs"><button type="button" data-tab="home">Home</button><button type="button" data-tab="site" class="on">Site Priority</button><button type="button" data-tab="nano">Nano</button></div>
 <div id="sync" class="sync" title="คลิกเพื่อ Sync ตอนนี้"><i></i><span><b>ยังไม่ได้ Sync</b></span></div>
 
 <div class="card" style="display:none">
@@ -140,6 +141,11 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
     <div id="pvwrap" style="position:relative"><label>Province</label><button type="button" class="pvbtn" id="pvbtn">ทั้งหมด</button><div id="pv" class="pvbox" hidden></div></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
+  </div>
+  <div id="nanoTools" style="display:none;margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap">
+    <button type="button" class="sec" id="nanoLoad">โหลด Nano Site list</button>
+    <input type="file" id="nanoFile" accept=".csv,text/csv" hidden>
+    <span class="mu" id="nanoStatus">ถ้า Site list ยังไม่โหลด ระบบยังค้นหา Subject ที่มีคำว่า Nano ได้</span>
   </div>
 </div>
 
@@ -318,6 +324,41 @@ const grp=x=>{if(ovr(x))return "BMA";const i=lookup(x);if(i&&i.grp)return i.grp;
 const $=id=>document.getElementById(id);
 /* ---- Home tab: stricter Site-code detection (site name -> CI name -> subject) ---- */
 const eid=x=>(tab==="home"&&x.hsid)||x.sid||x.site;
+let NANO_SITES=new Set(),nanoReady=false;
+const nanoKey=v=>String(v||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+function parseNanoSites(csv){
+  const sites=new Set();let col=0,cell="",quoted=false,header=true;
+  const save=()=>{if(!header&&col===1&&cell.trim())sites.add(nanoKey(cell));cell=""};
+  for(let i=0;i<csv.length;i++){
+    const ch=csv[i];
+    if(quoted){if(ch==='"'&&csv[i+1]==='"'){cell+='"';i++}else if(ch==='"')quoted=false;else cell+=ch;continue}
+    if(ch==='"'){quoted=true;continue}
+    if(ch===","){if(col===1&&!header&&cell.trim())sites.add(nanoKey(cell));col++;cell="";continue}
+    if(ch==="\n"||ch==="\r"){
+      save();if(ch==="\r"&&csv[i+1]==="\n")i++;col=0;header=false;continue;
+    }
+    cell+=ch;
+  }
+  if(cell||col)save();
+  return sites;
+}
+function nanoMatch(x){
+  if(/nano/i.test(x.subj||""))return true;
+  if(!NANO_SITES.size)return false;
+  return [x.site,x.sid,x.hsid,x.ci,eid(x)].some(v=>{const k=nanoKey(v);return k&&NANO_SITES.has(k)});
+}
+function showNanoStatus(msg,bad=false){$("nanoStatus").textContent=msg;$("nanoStatus").style.color=bad?"var(--err)":""}
+function nanoDB(){return new Promise((resolve,reject)=>{const q=indexedDB.open("ww_nano_sites",1);q.onupgradeneeded=()=>q.result.createObjectStore("files");q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
+async function saveNanoFile(file){const db=await nanoDB();return new Promise((resolve,reject)=>{const q=db.transaction("files","readwrite").objectStore("files").put(file,"nano_csv");q.onsuccess=()=>resolve();q.onerror=()=>reject(q.error)})}
+async function readNanoFile(){const db=await nanoDB();return new Promise((resolve,reject)=>{const q=db.transaction("files").objectStore("files").get("nano_csv");q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}
+async function activateNanoFile(file,persist=true){
+  showNanoStatus("กำลังอ่าน Nano Site list…");
+  try{const csv=await file.text();const s=parseNanoSites(csv);if(!s.size)throw new Error("ไม่พบข้อมูล SiteOrEquipment ในไฟล์");NANO_SITES=s;nanoReady=true;if(persist)try{await saveNanoFile(file)}catch(e){}showNanoStatus(`โหลด Nano Site list แล้ว ${s.size.toLocaleString()} Site`);render()}
+  catch(e){nanoReady=false;showNanoStatus("โหลดรายการไม่สำเร็จ: "+e.message,true)}
+}
+async function restoreNanoFile(){try{const file=await readNanoFile();if(file)await activateNanoFile(file,false)}catch(e){/* IndexedDB unavailable; user can select the CSV manually */}}
+$("nanoLoad").onclick=()=>$("nanoFile").click();
+$("nanoFile").onchange=e=>{const file=e.target.files[0];if(file)activateNanoFile(file);e.target.value=""};
 let PREF=new Set();   /* known 3-4 letter province/site prefixes, built from the site lists */
 function buildPref(){const st=new Set();const add=k=>{const m=String(k).match(/^[A-Z]{3,4}(?=\d)/);if(m)st.add(m[0])};Object.keys(SMAP).forEach(add);Object.keys(SITEINFO).forEach(add);PREF=st}
 const isK=t=>!!t&&(known(t)||known(t.split("(")[0]));
@@ -389,13 +430,13 @@ const hm=ms=>{const t=Math.round(Math.abs(ms)/60000);return Math.floor(t/60)+":"
 /* Over first (most overdue on top), then Within (least time left first), then tickets without a target */
 const slaRank=x=>!x.target?2:(x.target<Date.now()?0:1);
 const cmpSla=(x,y)=>slaRank(x)-slaRank(y)||((x.target&&y.target)?x.target-y.target:0)||x.site.localeCompare(y.site)||x.id.localeCompare(y.id);
-function slaOf(x){if(!x.target)return null;const d=x.target-Date.now();return{over:d<0,txt:(d<0?"Over ":"Within ")+hm(d)}}
+function slaOf(x){if(!x.target)return null;const d=x.target-Date.now(),over=d<=0;return{over,txt:over?`Over ${hm(d)}`:`เหลือเวลาอีก ${hm(d)}`}}
 const holderOf=v=>{v=String(v||"").trim();return(!v||/^none$/i.test(v))?"ยังไม่มีผู้ถือ":/(^|[^A-Za-z])INOC([^A-Za-z]|$)/i.test(v)?"System":v};   /* INOC holder (e.g. Anchalee_INOC_ALL) -> System */
 function ingest(text,d,src="Google Sheet"){
   const t=(Array.isArray(text)?text:parseCSV(text,d)).filter(r=>r.some(x=>String(x).trim()));
   const h=t[0].map(x=>String(x).trim().toUpperCase());
   const ix=n=>h.indexOf(n);
-  const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY"),iH=ix("TECH_TEAM"),iP=ix("PROVINCE"),iA=ix("AGING"),iC=ix("CREATIONDATE")>=0?ix("CREATIONDATE"):ix("CREATION DATE"),iF=ix("TARGETFINISH")>=0?ix("TARGETFINISH"):ix("TARGET FINISH"),iN=ix("CINAME"),iY=ix("NODE TYPE"),iK=ix("CLASSIFICATION"),iG2=ix("CATEGORIES"),iI=ix("INSERT_TIME"),iO=ix("OVER_SLA_DAY");
+  const iS=ix("SITENAME"),iT=ix("TICKETID"),iJ=ix("SUBJECT"),iU=ix("TECH_STATUS")>=0?ix("TECH_STATUS"):ix("STATUS"),iR=ix("REGION"),iV=ix("SEVERITY"),iH=ix("TECH_TEAM"),iP=ix("PROVINCE"),iA=ix("AGING"),iC=ix("CREATIONDATE")>=0?ix("CREATIONDATE"):ix("CREATION DATE"),iF=ix("TARGETFINISH")>=0?ix("TARGETFINISH"):ix("TARGET FINISH"),iN=ix("CINAME"),iY=ix("NODE TYPE"),iK=ix("CLASSIFICATION"),iG2=ix("CATEGORIES"),iI=ix("INSERT_TIME"),iO=ix("OVER_SLA_DAY");
   if(iS<0||iT<0||iJ<0) throw new Error("ไม่พบหัวคอลัมน์ SITENAME / TICKETID / SUBJECT");
   rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),bb:/broadband/i.test((iK>=0?r[iK]:"")+" "+(iG2>=0?r[iG2]:"")),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,tRaw:iF>=0?String(r[iF]||"").trim():"",ins:iI>=0?parseDT(r[iI]):null,od:iO>=0?parseFloat(r[iO]):NaN,nt:iY>=0?normNT(r[iY]):""})).filter(x=>x.id);
   window.ALLROWS=rows.slice();window.RAWT=t;   /* for "ตรวจ Ticket" */
@@ -416,7 +457,7 @@ let kwMode="all";
 let sevSet=new Set(["NSA1","NSA2","NSA3","SA1","SA2","SA3","SA4"]);
 /* Tabs: "site" = Site Priority (original behaviour) | "home" = fixed severities SA1/SA2/NSA1, all sites (ignores the Site-list filter) */
 const HOME_SEV=new Set(["SA1","SA2","NSA1"]);
-let tab="site";try{if(localStorage.getItem("ww_tab")==="home")tab="home"}catch(e){}
+let tab="site";try{const savedTab=localStorage.getItem("ww_tab");if(savedTab==="home"||savedTab==="nano")tab=savedTab}catch(e){}
 const effSev=()=>tab==="home"?HOME_SEV:sevSet;
 const effOL=()=>tab==="home"?false:$("onlylist").checked;
 const isSA=x=>/^SA\\d/i.test(x.sev);
@@ -469,7 +510,7 @@ function fillProv(){
 }
 function filtered(sk){
   const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=effOL(),SV=effSev();
-  return rows.filter(x=>(!ol||inList(x))&&(SV.size===0||SV.has(x.sev))&&(!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
+  return rows.filter(x=>(tab==="nano"?nanoMatch(x):(!ol||inList(x)))&&(SV.size===0||SV.has(x.sev))&&(tab==="nano"||!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
@@ -482,7 +523,7 @@ const slaTxt=x=>{const z=slaOf(x);return z?(z.over?"`"+z.txt+"`":"*"+z.txt+"*"):
 const holderTxt=x=>x.holder==="ยังไม่มีผู้ถือ"?"ไม่มีคนถือ":x.holder;
 const tline=x=>{
   const z=slaTxt(x),h=holderTxt(x);
-  return (x.sev?x.sev+" , ":"")+siteLabel(x)+(z?" "+z:"")+" , "+x.id+(h?" "+h:"");
+  return (x.sev?x.sev+" , ":"")+siteLabel(x)+(x.stat?" · "+x.stat:"")+(z?" "+z:"")+" , "+x.id+(h?" "+h:"");
 };
 function provBlock(it){
   const g=new Map();it.forEach(x=>{if(!g.has(x.prov))g.set(x.prov,[]);g.get(x.prov).push(x)});
@@ -496,7 +537,8 @@ const regionBlock=l=>ORDER.map(rg=>{const it=l.filter(x=>grp(x)===rg);return it.
 function text(items){
   const rP=new RegExp(KW.power,"i"),rO=new RegExp(KW.ofc,"i");
   const ot=items.filter(x=>!isSA(x)),sa=items.filter(isSA);
-  const secs=kwMode==="all"?[[HALL,items]]:kwMode==="power"?[[HP,items]]:kwMode==="ofc"?[[HO,items]]:
+  const hall=tab==="nano"?HALL+" Nano":HALL;
+  const secs=tab==="nano"?[[hall,items]]:kwMode==="all"?[[HALL,items]]:kwMode==="power"?[[HP,items]]:kwMode==="ofc"?[[HO,items]]:
     [[HP,ot.filter(x=>rP.test(x.subj))],[HO,ot.filter(x=>rO.test(x.subj))],["ติดตาม Update",items.filter(x=>isSA(x)||(!rP.test(x.subj)&&!rO.test(x.subj)))]];
   return secs.filter(([,l])=>l.length).map(([h,l])=>h+"\n\n"+regionBlock(l)).join("\n\n");
 }
@@ -522,7 +564,7 @@ function render(){
       const l=byP[pv].sort(cmpSla);
       const d=document.createElement("div");d.className="site";
       d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}${overN(l)?` · Over ${overN(l)}`:""}</span></b><button class="sec">Copy</button></div>`+
-        l.map(x=>{const z=slaOf(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
+        l.map(x=>{const z=slaOf(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.stat?`<span class="tech-status">${esc(x.stat)}</span>`:""}${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
       d.querySelector("button").onclick=e=>copy(text(l),e.target);
       sec.appendChild(d);
     });
@@ -561,6 +603,7 @@ function explainTicket(q){
   const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value;
   return hits.slice(0,4).flatMap(x=>{
     const why=[];
+    if(tab==="nano"&&!nanoMatch(x))why.push("Site ไม่อยู่ใน Nano Site list และ Subject ไม่มีคำว่า Nano");
     if(HIDE_BB&&x.bb)why.push("ถูกตัดเป็น Broadband (HIDE_BB=true)");
     if(effOL()&&!inList(x))why.push(`Site "${siteLabel(x)}" ไม่อยู่ในรายการ (ติ๊ก "เฉพาะ Site ในรายการ" อยู่)`);
     if(effSev().size&&!effSev().has(x.sev))why.push(`Severity ${x.sev||"(ว่าง)"} ไม่อยู่ในที่เลือก (${[...effSev()].join("/")}) [แท็บ ${tab==="home"?"Home":"Site Priority"}]`);
@@ -719,12 +762,15 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("auto")
 function applyTab(){
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   const home=tab==="home";
+  $("kw").closest(".row>div").style.display=tab==="nano"?"none":"";
   $("sev").closest(".row>div").style.display=home?"none":"";
-  $("onlylist").closest(".row>div").style.display=home?"none":"";
+  $("onlylist").closest(".row>div").style.display=tab==="site"?"":"none";
+  $("nanoTools").style.display=tab==="nano"?"flex":"none";
   try{localStorage.setItem("ww_tab",tab)}catch(e){}
 }
 $("tabs").onclick=e=>{const b=e.target.closest("button[data-tab]");if(!b||b.dataset.tab===tab)return;tab=b.dataset.tab;pvSet.clear();rows.forEach(x=>{x.prov=provOf(x)});applyTab();render();if($("chkq").value.trim())chkRun()};
 applyTab();
+restoreNanoFile();
 $("load").click();
 </script>
 </body>
