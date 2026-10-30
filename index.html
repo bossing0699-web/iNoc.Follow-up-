@@ -72,6 +72,14 @@ button.done,button.sec.done{background:var(--ok);border-color:var(--ok);color:#f
 .sev-card{padding:12px 16px;border:1px solid var(--bd);border-radius:12px;background:#fff;box-shadow:var(--sh-sm)}
 .sev-card b{display:block;color:var(--mu);font:500 11px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
 .sev-card strong{display:block;margin-top:3px;color:var(--tx);font:700 24px/1.2 Inter,"Noto Sans Thai",sans-serif}
+.time-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.time-card{padding:10px 14px;border:1px solid var(--bd);border-radius:12px;background:#fff;box-shadow:var(--sh-sm)}
+.time-card b{display:block;color:var(--mu);font:500 11px "JetBrains Mono",monospace}.time-card strong{display:block;margin-top:3px;font-size:22px}
+.time-card.alert{animation:newbox .9s ease-in-out infinite alternate;border-color:#ef4444;background:#fff1f2}
+@keyframes newbox{from{transform:translateX(0);box-shadow:0 0 0 rgba(239,68,68,0)}to{transform:translateX(4px);box-shadow:0 0 18px rgba(239,68,68,.7)}}
+.newtag{position:absolute;top:5px;right:8px;padding:1px 6px;border-radius:5px;background:#ef4444;color:#fff;font:700 10px Inter,sans-serif;animation:newblink 1s steps(2,end) infinite}
+@keyframes newblink{50%{opacity:.35}}
+@media(max-width:600px){.time-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:600px){.sev-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .cl{font:500 11px "JetBrains Mono",monospace;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px}
 button.chip{min-height:36px;padding:0 6px 0 14px;border-radius:999px;background:#fff;color:var(--tx);border:1px solid var(--bd);box-shadow:none;font-size:13px;display:inline-flex;align-items:center;gap:8px}
@@ -82,7 +90,10 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 .t{flex-wrap:wrap;align-items:center}
 .t .sj{flex:1 1 260px;color:var(--mu);white-space:normal;overflow:visible}
 .t .sv{font:600 11px "JetBrains Mono",monospace;padding:1px 8px;border-radius:6px;background:var(--muted);color:var(--tx)}
+.t .urg-pill,.urg-pill{display:inline-flex;align-items:center;font:600 11px "JetBrains Mono",monospace;padding:2px 8px;border-radius:6px;background:#EDE9FE;color:#6D28D9;white-space:nowrap}
 .t .tech-status{font:500 11px Inter,"Noto Sans Thai",sans-serif;padding:2px 8px;border-radius:6px;background:#EFF6FF;color:#1D4ED8;white-space:nowrap}
+.chk-top{display:inline-flex;align-items:center;justify-content:center;min-width:104px;min-height:34px;padding:0 12px;margin:0 0 10px;font:600 12px Inter,"Noto Sans Thai",sans-serif;color:#fff!important;-webkit-text-fill-color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.55);border-radius:12px;box-shadow:none}
+.chk-top:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.65);box-shadow:none;transform:none;filter:none}
 .t .ss{font:600 12.5px "JetBrains Mono",monospace;color:var(--tx)}
 .st{font:600 11.5px "JetBrains Mono",monospace;font-style:normal;border-radius:6px;padding:1px 8px;white-space:nowrap}
 .st.ok{color:#15803d;background:rgba(22,163,74,.1)}
@@ -109,6 +120,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 <h1>W&W · Ticket <span class="gt">Follow-up</span></h1>
 <div class="tabs" id="tabs"><button type="button" data-tab="home">Home</button><button type="button" data-tab="site" class="on">Site Priority</button><button type="button" data-tab="nano">Nano</button></div>
 <div id="sync" class="sync" title="คลิกเพื่อ Sync ตอนนี้"><i></i><span><b>ยังไม่ได้ Sync</b></span></div>
+<button type="button" class="sec chk-top" id="chkopen">ตรวจ Ticket</button>
 
 <div class="card" style="display:none">
   <div class="row">
@@ -138,6 +150,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
     <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
     <div><label>Severity</label>
       <select id="sev"><option value="all">ทั้งหมด (NSA + SA)</option><option value="NSA">NSA</option><option value="SA">SA</option></select></div>
+    <div id="urgwrap"><label>Urgency</label><span id="urgency" class="urg-pill">คำนวณจาก Creation ถึง Target</span></div>
     <div id="slawrap"><label>เหลือเวลาอีก</label><select id="slaf"><option value="">ทั้งหมด</option><option value="6">น้อยกว่า 6 h</option><option value="3">น้อยกว่า 3 h</option><option value="2">น้อยกว่า 2 h</option><option value="1">น้อยกว่า 1 h</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
     <div id="pvwrap" style="position:relative"><label>Province</label><button type="button" class="pvbtn" id="pvbtn">ทั้งหมด</button><div id="pv" class="pvbox" hidden></div></div>
@@ -150,13 +163,14 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
   </div>
 </div>
 
-<div class="card" id="chkcard">
-  <div class="pill"><i></i>ตรวจ Ticket</div>
+<div class="card" id="chkcard" style="display:none">
+  <div id="chkbody">
   <div class="row">
     <div style="flex:3"><label>เลข Ticket</label><input type="text" id="chkq" placeholder="เช่น INC000104047999" autocomplete="off"></div>
     <div style="flex:0;min-width:auto"><button type="button" id="chkbtn">ตรวจว่าทำไมไม่ขึ้น</button></div>
   </div>
   <div id="chkout" style="margin-top:12px;font-size:13px;line-height:1.7;color:var(--tx)"></div>
+  </div>
 </div>
 <details class="card" id="tgcard" style="display:none"><!-- ซ่อนไว้ก่อน: ลบ style="display:none" เพื่อแสดงการ์ด Telegram -->
   <summary class="pill" style="cursor:pointer;list-style:none;margin:0">Telegram · ส่งอัตโนมัติ</summary>
@@ -181,6 +195,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
     </div>
   </div>
   <div id="sevsummary" class="sev-cards" style="margin-top:12px" aria-live="polite"></div>
+  <div id="timeSummary" class="time-cards" aria-live="polite"></div>
   <div id="list" style="margin-top:10px"></div>
 </div>
 </div>
@@ -188,6 +203,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
 <script>
 let rows=[];
 let lastOk="";
+let newTicketIds=new Set();
 function setSync(state,title,detail){
   const el=document.getElementById("sync");
   el.className="sync "+state;
@@ -200,7 +216,11 @@ function track(src,tbl){
   const key="ww_sync:"+src;let prev=null;
   try{prev=JSON.parse(localStorage.getItem(key)||"null")}catch(e){}
   const st=(prev&&prev.sig===sig)?{sig,at:prev.at,first:!!prev.first,changed:false}:{sig,at:Date.now(),first:!prev,changed:!!prev};
-  try{localStorage.setItem(key,JSON.stringify({sig:st.sig,at:st.at,first:st.first}))}catch(e){}
+  const ti=(tbl[0]||[]).findIndex(h=>/^(TICKETID|TICKET ID|TT)$/i.test(String(h).trim()));
+  const ids=ti>=0?tbl.slice(1).map(r=>String(r[ti]||"").trim()).filter(Boolean):[];
+  const sameData=!!(prev&&prev.sig===sig);
+  newTicketIds=new Set(sameData?(prev.newIds||[]):(!prev?[]:ids.filter(id=>!(prev.ids||[]).includes(id))));
+  try{localStorage.setItem(key,JSON.stringify({sig:st.sig,at:st.at,first:st.first,ids,newIds:[...newTicketIds]}))}catch(e){}
   return st;
 }
 function setUpd(src,st){
@@ -444,8 +464,9 @@ function ingest(text,d,src="Google Sheet"){
   rows=t.slice(1).map(r=>({site:(r[iS]||"").trim(),bb:/broadband/i.test((iK>=0?r[iK]:"")+" "+(iG2>=0?r[iG2]:"")),ci:iN>=0?String(r[iN]||"").trim():"",id:(r[iT]||"").trim(),subj:r[iJ]||"",stat:iU>=0?(r[iU]||"").trim():"",aging:iA>=0?String(r[iA]||"").trim():"",provRaw:iP>=0?String(r[iP]||"").trim():"",holder:iH>=0?holderOf(r[iH]):"",sev:iV>=0?String(r[iV]||"").trim().toUpperCase():"",region:iR>=0?String(r[iR]||"").trim().toUpperCase():"",created:iC>=0?parseDT(r[iC]):null,target:iF>=0?parseDT(r[iF]):null,tRaw:iF>=0?String(r[iF]||"").trim():"",ins:iI>=0?parseDT(r[iI]):null,od:iO>=0?parseFloat(r[iO]):NaN,nt:iY>=0?normNT(r[iY]):""})).filter(x=>x.id);
   window.ALLROWS=rows.slice();window.RAWT=t;   /* for "ตรวจ Ticket" */
   window.bbN=0;if(HIDE_BB){window.bbN=rows.filter(x=>x.bb).length;rows=rows.filter(x=>!x.bb)}   /* Broadband hidden */
-  buildPref();rows.forEach(x=>{x.sid=sidOf(x);x.hsid=homeSid(x);x.target=fixTarget(x);x.prov=provOf(x)});
-  setUpd(src,track(src,t));
+  const syncState=track(src,t);
+  buildPref();rows.forEach(x=>{x.sid=sidOf(x);x.hsid=homeSid(x);x.target=fixTarget(x);x.prov=provOf(x);x.isNew=newTicketIds.has(x.id)});
+  setUpd(src,syncState);
   render();
   tgAuto(src);
 }
@@ -556,6 +577,8 @@ function render(){
   priorityList.forEach(x=>{if(Object.hasOwn(sevCounts,x.sev))sevCounts[x.sev]++});
   const sevTotal=sevCounts.SA1+sevCounts.SA2+sevCounts.NSA1;
   $("sevsummary").innerHTML=`<div class="sev-card"><b>SA1</b><strong>${sevCounts.SA1}</strong></div><div class="sev-card"><b>SA2</b><strong>${sevCounts.SA2}</strong></div><div class="sev-card"><b>NSA1</b><strong>${sevCounts.NSA1}</strong></div><div class="sev-card"><b>ทั้งหมด</b><strong>${sevTotal}</strong></div>`;
+  const hours=[6,3,2,1];
+  $("timeSummary").innerHTML=hours.map(h=>{const n=list.filter(x=>{const z=slaOf(x);return z&&!z.over&&z.remaining>=0&&z.remaining<h*36e5}).length;return `<div class="time-card${newTicketIds.size&&list.some(x=>x.isNew&&(()=>{const z=slaOf(x);return z&&!z.over&&z.remaining<h*36e5})())?" alert":""}"><b>เหลือเวลาอีก ${h} H</b><strong>${n}</strong></div>`}).join("");
   $("list").innerHTML="";
   ORDER.forEach(rg=>{
     const items=list.filter(x=>grp(x)===rg);
@@ -568,7 +591,7 @@ function render(){
       const l=byP[pv].sort(cmpSla);
       const d=document.createElement("div");d.className="site";
       d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}${overN(l)?` · Over ${overN(l)}`:""}</span></b><button class="sec">Copy</button></div>`+
-        l.map(x=>{const z=slaOf(x),u=urgencyText(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}${u?` · ${u}`:""}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.stat?`<span class="tech-status">${esc(x.stat)}</span>`:""}${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
+        l.map(x=>{const z=slaOf(x),u=urgencyText(x);return `<div class="t" style="position:relative">${x.isNew?'<span class="newtag">New</span>':""}<code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}${u?` · ${u}`:""}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.stat?`<span class="tech-status">${esc(x.stat)}</span>`:""}${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
       d.querySelector("button").onclick=e=>copy(text(l),e.target);
       sec.appendChild(d);
     });
@@ -620,6 +643,7 @@ function explainTicket(q){
   });
 }
 const chkRun=()=>{$("chkout").innerHTML=explainTicket($("chkq").value).map(l=>"<div>"+esc(l)+"</div>").join("")};
+$("chkopen").onclick=()=>{const card=$("chkcard"),open=card.style.display==="none";card.style.display=open?"block":"none";$("chkopen").textContent=open?"ปิดตรวจ Ticket":"ตรวจ Ticket";};
 $("chkbtn").onclick=chkRun;$("chkq").onkeydown=e=>{if(e.key==="Enter")chkRun()};
 
 /* ---- Telegram auto-send: runs inside this page (tab must stay open) ---- */
@@ -769,6 +793,7 @@ function applyTab(){
   const home=tab==="home";
   $("kw").closest(".row>div").style.display=tab==="nano"?"none":"";
   $("sev").closest(".row>div").style.display=home?"none":"";
+  $("urgwrap").style.display=tab==="home"?"none":"";
   $("slawrap").style.display="";
   $("onlylist").closest(".row>div").style.display=tab==="site"?"":"none";
   $("nanoTools").style.display=tab==="nano"?"flex":"none";
