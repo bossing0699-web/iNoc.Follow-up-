@@ -138,6 +138,7 @@ button.chip.on span{background:rgba(255,255,255,.25);color:#fff}
     <div><label>Site</label><input type="text" id="sitef" placeholder="ค้นหา Site เช่น NKN"></div>
     <div><label>Severity</label>
       <select id="sev"><option value="all">ทั้งหมด (NSA + SA)</option><option value="NSA">NSA</option><option value="SA">SA</option></select></div>
+    <div id="slawrap"><label>เหลือเวลาอีก</label><select id="slaf"><option value="">ทั้งหมด</option><option value="6">น้อยกว่า 6 h</option><option value="3">น้อยกว่า 3 h</option><option value="2">น้อยกว่า 2 h</option><option value="1">น้อยกว่า 1 h</option></select></div>
     <div><label>Region</label><select id="rg"><option value="">ทั้งหมด</option><option>BMA</option><option>CW</option><option>East</option><option>South</option><option>อื่นๆ</option></select></div>
     <div id="pvwrap" style="position:relative"><label>Province</label><button type="button" class="pvbtn" id="pvbtn">ทั้งหมด</button><div id="pv" class="pvbox" hidden></div></div>
     <div style="flex:0;min-width:auto;white-space:nowrap"><label>&nbsp;</label><label style="display:inline;color:var(--tx)"><input type="checkbox" id="onlylist" checked> เฉพาะ Site ในรายการ</label></div>
@@ -430,7 +431,9 @@ const hm=ms=>{const t=Math.round(Math.abs(ms)/60000);return Math.floor(t/60)+":"
 /* Over first (most overdue on top), then Within (least time left first), then tickets without a target */
 const slaRank=x=>!x.target?2:(x.target<Date.now()?0:1);
 const cmpSla=(x,y)=>slaRank(x)-slaRank(y)||((x.target&&y.target)?x.target-y.target:0)||x.site.localeCompare(y.site)||x.id.localeCompare(y.id);
-function slaOf(x){if(!x.target)return null;const d=x.target-Date.now(),over=d<=0;return{over,txt:over?`Over ${hm(d)}`:`เหลือเวลาอีก ${hm(d)}`}}
+function urgencyHours(x){if(!x.created||!x.target)return null;const ms=x.target-x.created;if(ms<=0)return null;return Math.ceil(ms/36e5)}
+function urgencyText(x){const h=urgencyHours(x);return h?`${h}H`:""}
+function slaOf(x){if(!x.target)return null;const d=x.target-Date.now(),over=d<=0;return{over,remaining:d,txt:over?`Over ${hm(d)}`:`เหลือเวลาอีก ${hm(d)}`}}
 const holderOf=v=>{v=String(v||"").trim();return(!v||/^none$/i.test(v))?"ยังไม่มีผู้ถือ":/(^|[^A-Za-z])INOC([^A-Za-z]|$)/i.test(v)?"System":v};   /* INOC holder (e.g. Anchalee_INOC_ALL) -> System */
 function ingest(text,d,src="Google Sheet"){
   const t=(Array.isArray(text)?text:parseCSV(text,d)).filter(r=>r.some(x=>String(x).trim()));
@@ -510,7 +513,8 @@ function fillProv(){
 }
 function filtered(sk){
   const re=buildRegex(),sf=$("sitef").value.trim().toLowerCase(),rg=$("rg").value,ol=effOL(),SV=effSev();
-  return rows.filter(x=>(tab==="nano"?nanoMatch(x):(!ol||inList(x)))&&(SV.size===0||SV.has(x.sev))&&(tab==="nano"||!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(sk===true||pvSet.size===0||pvSet.has(x.prov)));
+  const lim=Number($("slaf").value)||0;
+  return rows.filter(x=>{const z=slaOf(x);return (tab==="nano"?nanoMatch(x):(!ol||inList(x)))&&(SV.size===0||SV.has(String(x.sev||"").trim().toUpperCase()))&&(tab==="nano"||!re||isSA(x)||re.test(x.subj))&&(!sf||(x.site+" "+(x.sid||"")+" "+(x.hsid||"")+" "+(isSA(x)?x.ci:"")).toLowerCase().includes(sf))&&(!rg||grp(x)===rg)&&(!lim||(z&&!z.over&&z.remaining>=0&&z.remaining<lim*36e5))&&(sk===true||pvSet.size===0||pvSet.has(x.prov))});
 }
 
 const SUF=" Site RN , PN , DN , CX , TOC , AGN , AN";
@@ -523,7 +527,7 @@ const slaTxt=x=>{const z=slaOf(x);return z?(z.over?"`"+z.txt+"`":"*"+z.txt+"*"):
 const holderTxt=x=>x.holder==="ยังไม่มีผู้ถือ"?"ไม่มีคนถือ":x.holder;
 const tline=x=>{
   const z=slaTxt(x),h=holderTxt(x);
-  return (x.sev?x.sev+" , ":"")+siteLabel(x)+(x.stat?" · "+x.stat:"")+(z?" "+z:"")+" , "+x.id+(h?" "+h:"");
+  return (x.sev?x.sev+(urgencyText(x)?" "+urgencyText(x):"")+" , ":"")+siteLabel(x)+(x.stat?" · "+x.stat:"")+(z?" "+z:"")+" , "+x.id+(h?" "+h:"");
 };
 function provBlock(it){
   const g=new Map();it.forEach(x=>{if(!g.has(x.prov))g.set(x.prov,[]);g.get(x.prov).push(x)});
@@ -564,7 +568,7 @@ function render(){
       const l=byP[pv].sort(cmpSla);
       const d=document.createElement("div");d.className="site";
       d.innerHTML=`<div class="sh"><b>${esc(pv)} <span class="mu">${l.length}${overN(l)?` · Over ${overN(l)}`:""}</span></b><button class="sec">Copy</button></div>`+
-        l.map(x=>{const z=slaOf(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.stat?`<span class="tech-status">${esc(x.stat)}</span>`:""}${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
+        l.map(x=>{const z=slaOf(x),u=urgencyText(x);return `<div class="t"><code>${esc(x.id)}</code>${x.sev?`<span class="sv">${esc(x.sev)}${u?` · ${u}`:""}</span>`:""}<b class="ss">${esc(siteLabel(x))}</b>${x.stat?`<span class="tech-status">${esc(x.stat)}</span>`:""}${x.holder?`<em class="who">${esc(x.holder)}</em>`:""}${z?`<em class="st ${z.over?"over":"ok"}">${z.txt}</em>`:""}<span class="sj">${esc(x.subj)}</span></div>`}).join("");
       d.querySelector("button").onclick=e=>copy(text(l),e.target);
       sec.appendChild(d);
     });
@@ -747,6 +751,7 @@ $("file").onchange=e=>{
 };
 
 $("sitef").oninput=render;
+$("slaf").onchange=render;
 $("sev").onchange=e=>{const v=e.target.value,N=["NSA1","NSA2","NSA3"],S=["SA1","SA2","SA3","SA4"];sevSet=new Set(v==="all"?[...N,...S]:v==="NSA"?N:v==="SA"?S:[v]);render()};
 $("kw").onchange=e=>{kwMode=e.target.value;render()};
 $("rg").onchange=()=>{pvSet.clear();render()};
@@ -764,6 +769,7 @@ function applyTab(){
   const home=tab==="home";
   $("kw").closest(".row>div").style.display=tab==="nano"?"none":"";
   $("sev").closest(".row>div").style.display=home?"none":"";
+  $("slawrap").style.display="";
   $("onlylist").closest(".row>div").style.display=tab==="site"?"":"none";
   $("nanoTools").style.display=tab==="nano"?"flex":"none";
   try{localStorage.setItem("ww_tab",tab)}catch(e){}
